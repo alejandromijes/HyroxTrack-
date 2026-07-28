@@ -4,8 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
 <title>Hyrox Acapulco</title>
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Hyrox ACA">
 <style>
 :root {
@@ -238,7 +236,7 @@ function emptyDayRecord() {
     },
   };
 }
-function defaultData() { return { version:1, days:{}, frequentFoods:[] }; }
+function defaultData() { return { version:1, days:{}, frequentFoods:[], lastExportAt:null }; }
 function todayPlanDay() {
   const now = new Date();
   const startMid = new Date(START_DATE.getFullYear(), START_DATE.getMonth(), START_DATE.getDate());
@@ -502,6 +500,9 @@ function HyroxTracker() {
       )}
       {!apiKey && (
         <div className="banner banner-warn">🔑 <span>Agrega tu API key en la pestaña Datos para usar el cálculo de macros con IA y las fotos de báscula/Watch.</span></div>
+      )}
+      {(!data.lastExportAt || (Date.now()-data.lastExportAt)/86400000 > 3) && (
+        <div className="banner banner-warn">💾 <span>No has hecho un respaldo en unos días. Ve a Datos → Exportar y guárdalo en Notas — toma 10 segundos.</span></div>
       )}
 
       <div className="day-strip" ref={dayStripRef}>
@@ -1000,7 +1001,7 @@ function DatosTab({ data, setData, apiKey, setApiKey, setFrequentFoods }) {
         <div className="card-title">⬇️ Exportar respaldo</div>
         <p className="dim small">Genera un bloque de texto con todo tu progreso. Pégalo en Notas o mándatelo por WhatsApp como respaldo.</p>
         {!showExport
-          ? <button className="btn btn-primary" onClick={()=>setShowExport(true)}>⬇️ Preparar exportación</button>
+          ? <button className="btn btn-primary" onClick={()=>{setShowExport(true); setData(d=>({...d, lastExportAt: Date.now()}));}}>⬇️ Preparar exportación</button>
           : <>
               <textarea ref={exportRef} className="input mono" rows="5" readOnly value={exportText} onFocus={e=>e.target.select()} />
               <button className="btn btn-secondary" onClick={()=>{exportRef.current && exportRef.current.select();}}>📋 Seleccionar todo</button>
