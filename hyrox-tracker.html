@@ -1,0 +1,881 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<title>Hyrox Acapulco</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Hyrox ACA">
+<style>
+:root {
+  --bg: #101114; --surface: #1A1B20; --surface-2: #22232A;
+  --text: #ECEDEF; --dim: #9598A1; --border: #2B2D34;
+  --accent: #FF4B26; --accent-2: #7CD957; --accent-3: #4EA1FF;
+  --warn: #FFB020; --danger: #FF5C5C;
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; padding: 0; background: var(--bg); }
+body {
+  color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+  min-height: 100dvh;
+}
+.mono { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-variant-numeric: tabular-nums; }
+.dim { color: var(--dim); }
+.small { font-size: 12.5px; line-height: 1.5; }
+.spin { display:inline-block; animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.app-root { display: flex; flex-direction: column; padding-bottom: 76px; min-height: 100dvh; }
+.center-screen { align-items: center; justify-content: center; gap: 10px; flex:1; display:flex; flex-direction:column; }
+
+.app-header { padding: 14px 16px 10px; border-bottom: 1px solid var(--border); position: sticky; top:0; background:var(--bg); z-index:5; }
+.header-top { display: flex; justify-content: space-between; align-items: flex-start; }
+.app-header h1 { font-size: 19px; font-weight: 800; letter-spacing: -0.02em; margin: 0; }
+
+.badge { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; padding: 4px 8px; border-radius: 20px; white-space: nowrap; }
+.badge-ok { background: rgba(124,217,87,0.15); color: var(--accent-2); }
+.badge-dim { background: var(--surface-2); color: var(--dim); }
+.badge-danger { background: rgba(255,92,92,0.15); color: var(--danger); }
+
+.banner { display: flex; gap: 8px; align-items: flex-start; padding: 10px 14px; font-size: 12.5px; line-height: 1.45; }
+.banner-danger { background: rgba(255,92,92,0.12); color: #FFB4B4; border-bottom: 1px solid rgba(255,92,92,0.3); }
+.banner-warn { background: rgba(255,176,32,0.12); color: #FFD79A; border-bottom: 1px solid rgba(255,176,32,0.3); }
+
+.day-strip { display: flex; gap: 6px; overflow-x: auto; padding: 10px 16px; border-bottom: 1px solid var(--border); scrollbar-width: none; }
+.day-strip::-webkit-scrollbar { display: none; }
+.day-chip { flex: 0 0 auto; width: 42px; height: 52px; border-radius: 10px; background: var(--surface); border: 1px solid var(--border); color: var(--dim); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; position: relative; }
+.day-chip-n { font-size: 14px; font-weight: 700; color: var(--text); }
+.day-chip-dow { font-size: 9px; text-transform: uppercase; }
+.day-chip-active { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.day-chip-rest { opacity: 0.5; }
+.day-chip-race { border-color: var(--warn); }
+.day-chip-check { position: absolute; top: 3px; right: 3px; color: var(--accent-2); font-size:10px; }
+
+.app-main { flex: 1; }
+.tab-pad { padding: 14px 16px 20px; display: flex; flex-direction: column; gap: 12px; }
+
+.day-title-row { display: flex; align-items: center; justify-content: space-between; }
+.day-title-row .center { text-align: center; }
+.day-title { font-weight: 700; font-size: 15px; }
+
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 14px; }
+.card-accent { border-color: var(--accent); }
+.card-danger-zone { border-color: rgba(255,92,92,0.4); }
+.card-title { display: flex; align-items: center; gap: 6px; font-weight: 700; font-size: 13px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--dim); margin-bottom: 8px; }
+
+.icon-btn { background: var(--surface-2); border: 1px solid var(--border); color: var(--text); border-radius: 10px; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; font-size:16px; }
+.icon-btn-danger { color: var(--danger); background: transparent; border: none; width: auto; height: auto; font-size:14px; }
+
+.train-row { margin-bottom: 8px; }
+.train-toggle { width: 100%; display: flex; align-items: center; gap: 8px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; color: var(--text); font-size: 13.5px; text-align: left; }
+.train-toggle-done { border-color: var(--accent-2); background: rgba(124,217,87,0.08); }
+.train-check { margin-left: auto; color: var(--accent-2); }
+.rpe-wrap { display: flex; align-items: center; gap: 8px; margin-top: 6px; padding-left: 4px; }
+.rpe-row { display: flex; gap: 3px; flex-wrap: wrap; }
+.rpe-dot { width: 22px; height: 22px; border-radius: 6px; background: var(--surface-2); border: 1px solid var(--border); color: var(--dim); font-size: 10px; }
+.rpe-dot-active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+.macro-bar-wrap { margin-bottom: 9px; }
+.macro-bar-labels { display: flex; justify-content: space-between; font-size: 11.5px; margin-bottom: 3px; }
+.macro-bar-track { height: 6px; background: var(--surface-2); border-radius: 4px; overflow: hidden; }
+.macro-bar-fill { height: 100%; border-radius: 4px; }
+
+.meal-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border); }
+.meal-name { font-size: 13.5px; font-weight: 600; }
+.chip-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0; }
+.chip { background: var(--surface-2); border: 1px solid var(--border); color: var(--text); font-size: 12px; padding: 6px 10px; border-radius: 20px; }
+
+.btn-row { display: flex; gap: 8px; margin-top: 10px; }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; border-radius: 10px; padding: 9px 14px; font-size: 13px; font-weight: 600; border: 1px solid transparent; flex: 1; }
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-secondary { background: var(--surface-2); color: var(--text); border-color: var(--border); }
+.btn-ghost { background: transparent; color: var(--dim); border-color: var(--border); }
+.btn-danger { background: rgba(255,92,92,0.15); color: var(--danger); border-color: rgba(255,92,92,0.4); }
+.btn:disabled { opacity: 0.4; }
+
+.inline-form { margin-top: 10px; display: flex; flex-direction: column; gap: 8px; }
+.input { width: 100%; background: var(--surface-2); border: 1px solid var(--border); color: var(--text); border-radius: 9px; padding: 9px 11px; font-size: 13.5px; font-family: inherit; }
+textarea.input { resize: vertical; }
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 8px; }
+.four-col { display: grid; grid-template-columns: repeat(4,1fr); gap: 6px; }
+.ai-result { background: var(--surface-2); border-radius: 10px; padding: 10px; margin-top: 6px; }
+
+.segment-row { display: flex; gap: 6px; margin-bottom: 6px; align-items: center; }
+.segment-value { max-width: 110px; }
+.history-row { padding: 8px 0; border-bottom: 1px solid var(--border); }
+
+.stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px; text-align: center; }
+.stat-value { font-size: 20px; font-weight: 800; color: var(--accent); }
+
+.bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; display: flex; background: var(--surface); border-top: 1px solid var(--border); padding: 8px 6px calc(8px + env(safe-area-inset-bottom)); z-index:10; }
+.nav-btn { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 10px; color: var(--dim); background: none; border: none; padding: 4px; }
+.nav-btn-active { color: var(--accent); }
+.nav-ico { font-size: 18px; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+<script type="text/babel">
+const { useState, useEffect, useRef, useCallback, useMemo } = React;
+
+/* ============================================================
+   CONFIG / CALENDARIO DEL PLAN
+============================================================ */
+const START_DATE = new Date(2026, 6, 28);
+const TOTAL_DAYS = 41;
+const LS_DATA_KEY = "hyroxTrackerData";
+const LS_KEY_KEY = "hyroxApiKey";
+const DOW_LABELS = ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
+const MONTHS = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
+
+function addDays(date, n) { const d = new Date(date); d.setDate(d.getDate()+n); return d; }
+function fmtShort(date) { return `${date.getDate()} ${MONTHS[date.getMonth()]}`; }
+
+function buildSchedule() {
+  const days = [];
+  for (let n = 1; n <= TOTAL_DAYS; n++) {
+    const date = addDays(START_DATE, n - 1);
+    const dow = date.getDay();
+    let phase = 1;
+    if (n >= 36 && n <= 40) phase = 3;
+    else if (n >= 29 && n <= 35) phase = 2;
+    else if (n <= 28) phase = 1;
+    const isRaceDay = n === TOTAL_DAYS;
+    const isRest = dow === 6 && !isRaceDay;
+    const hyroxClass = !isRest && !isRaceDay;
+    let pesas = false, correr = false, correrMin = null;
+    if (hyroxClass) {
+      if (phase === 1) {
+        if (dow === 1 || dow === 3) pesas = true;
+        if (dow === 2 || dow === 4) { correr = true; const week = Math.ceil(n/7); correrMin = Math.min(22, 12 + (week-1)*3); }
+      } else if (phase === 2) {
+        if (dow === 1) pesas = true;
+        if (dow === 2 || dow === 4) { correr = true; correrMin = 11; }
+      }
+    }
+    const highIntensity = hyroxClass && (dow === 5 || dow === 0);
+    days.push({ n, date, dow, phase, isRaceDay, isRest, hyroxClass, pesas, correr, correrMin, highIntensity });
+  }
+  return days;
+}
+const SCHEDULE = buildSchedule();
+
+const MACRO_TABLE_F3 = [
+  { kcal:2500, protein:170, carbs:260, fat:87 },
+  { kcal:2600, protein:170, carbs:300, fat:80 },
+  { kcal:2700, protein:165, carbs:350, fat:71 },
+  { kcal:2900, protein:160, carbs:400, fat:73 },
+  { kcal:3000, protein:155, carbs:430, fat:73 },
+];
+function getMacroTarget(sd) {
+  if (!sd || sd.isRaceDay) return null;
+  if (sd.phase === 1) return { kcal:2200, protein:175, fat:61, carbs:225 };
+  if (sd.phase === 2) return { kcal:2490, protein:170, fat:63, carbs:285 };
+  if (sd.phase === 3) return MACRO_TABLE_F3[sd.n-36] || MACRO_TABLE_F3[4];
+  return null;
+}
+function phaseLabel(p, isRaceDay) {
+  if (isRaceDay) return "Día de carrera";
+  if (p===1) return "Fase 1 · Déficit";
+  if (p===2) return "Fase 2 · Mantenimiento";
+  if (p===3) return "Fase 3 · Carga de carbos";
+  return "";
+}
+function emptyDayRecord() {
+  return {
+    done: { hyrox:false, pesas:false, correr:false },
+    rpe: { hyrox:null, pesas:null, correr:null },
+    meals: [],
+    bodycheck: { weight:null, bodyfat:null, extra:"" },
+    performance: { durationMin:null, hrAvg:null, hrMax:null, rpeSession:null, segments:[], notes:"" },
+  };
+}
+function defaultData() { return { version:1, days:{}, frequentFoods:[] }; }
+function todayPlanDay() {
+  const now = new Date();
+  const startMid = new Date(START_DATE.getFullYear(), START_DATE.getMonth(), START_DATE.getDate());
+  const nowMid = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const diff = Math.round((nowMid-startMid)/86400000)+1;
+  if (diff<1) return 1;
+  if (diff>TOTAL_DAYS) return TOTAL_DAYS;
+  return diff;
+}
+
+/* ============================================================
+   PERSISTENCIA — localStorage real (funciona en cualquier navegador)
+============================================================ */
+function loadLS(key, fallback) {
+  try {
+    const raw = localStorage.getItem(key);
+    if (raw === null) return fallback;
+    return JSON.parse(raw);
+  } catch (e) { return fallback; }
+}
+function saveLS(key, value) {
+  try { localStorage.setItem(key, JSON.stringify(value)); return true; }
+  catch (e) { return false; }
+}
+function storageAvailable() {
+  try { const t="__t__"; localStorage.setItem(t,"1"); localStorage.removeItem(t); return true; }
+  catch(e){ return false; }
+}
+
+/* ============================================================
+   LLAMADAS A CLAUDE (con tu propia API key, CORS directo)
+============================================================ */
+async function callClaude(apiKey, body) {
+  const resp = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01",
+      "anthropic-dangerous-direct-browser-access": "true",
+    },
+    body: JSON.stringify(body),
+  });
+  if (!resp.ok) {
+    let msg = resp.status;
+    try { const j = await resp.json(); msg = (j.error && j.error.message) || msg; } catch(e){}
+    throw new Error(String(msg));
+  }
+  return resp.json();
+}
+function extractJSON(apiResponse) {
+  const texts = (apiResponse.content||[]).filter(b=>b.type==="text").map(b=>b.text).join("\n");
+  const clean = texts.replace(/```json|```/g,"").trim();
+  const start = clean.indexOf("{"); const end = clean.lastIndexOf("}");
+  if (start===-1||end===-1) throw new Error("Sin JSON en la respuesta");
+  return JSON.parse(clean.slice(start,end+1));
+}
+async function calcularMacrosIA(apiKey, desc) {
+  const json = await callClaude(apiKey, {
+    model: "claude-sonnet-5",
+    max_tokens: 500,
+    messages: [{ role:"user", content: `Eres nutriólogo. Estima los macros de esta comida. Responde SOLO un objeto JSON sin texto extra ni backticks: {"name":"...","kcal":0,"protein":0,"carbs":0,"fat":0}. Comida: ${desc}` }],
+  });
+  return extractJSON(json);
+}
+async function fileToJpegBase64(file, maxDim=1200, quality=0.85) {
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await new Promise((resolve,reject)=>{
+      const image = new Image();
+      image.onload = ()=>resolve(image);
+      image.onerror = ()=>reject(new Error("No se pudo leer la imagen"));
+      image.src = url;
+    });
+    let { width, height } = img;
+    if (width>maxDim || height>maxDim) {
+      const scale = maxDim/Math.max(width,height);
+      width = Math.round(width*scale); height = Math.round(height*scale);
+    }
+    const canvas = document.createElement("canvas");
+    canvas.width = width; canvas.height = height;
+    canvas.getContext("2d").drawImage(img,0,0,width,height);
+    return canvas.toDataURL("image/jpeg", quality).split(",")[1];
+  } finally { URL.revokeObjectURL(url); }
+}
+const EXTRACT_PROMPTS = {
+  bascula: `Esta es una foto de una báscula de bioimpedancia o de su app (ej. RENPHO), mostrando composición corporal. Lee los valores visibles con cuidado. Responde SOLO un objeto JSON sin texto extra ni backticks: {"weight_kg":0,"bodyfat_pct":0,"muscle_kg":null,"visceral_fat":null,"water_pct":null}. Si algún dato no aparece, usa null. No inventes valores.`,
+  watch: `Esta es una foto o captura del resumen de un entrenamiento (Apple Watch o app Fitness/Actividad/Salud). Lee los valores visibles con cuidado. Responde SOLO un objeto JSON sin texto extra ni backticks: {"tipo":"","duration_min":0,"hr_avg":null,"hr_max":null,"calories":null,"distance_km":null,"pace":null}. Si algún dato no aparece, usa null. No inventes valores.`,
+};
+async function extraerFotoIA(apiKey, file, tipo) {
+  const base64 = await fileToJpegBase64(file);
+  const json = await callClaude(apiKey, {
+    model: "claude-sonnet-5",
+    max_tokens: 500,
+    messages: [{ role:"user", content: [
+      { type:"image", source: { type:"base64", media_type:"image/jpeg", data: base64 } },
+      { type:"text", text: EXTRACT_PROMPTS[tipo] },
+    ]}],
+  });
+  return extractJSON(json);
+}
+
+/* ============================================================
+   MINI GRÁFICAS SVG (sin dependencias externas)
+============================================================ */
+function LineChartSVG({ data, color, height=140 }) {
+  if (!data || data.length < 2) return <p className="dim small">Aún no hay suficientes datos.</p>;
+  const width=320, pad=10;
+  const xs=data.map(d=>d.x), ys=data.map(d=>d.y);
+  const minX=Math.min(...xs), maxX=Math.max(...xs);
+  const minY=Math.min(...ys), maxY=Math.max(...ys);
+  const spanX=(maxX-minX)||1, spanY=(maxY-minY)||1;
+  const pt = d => {
+    const px = pad + ((d.x-minX)/spanX)*(width-2*pad);
+    const py = height-pad - ((d.y-minY)/spanY)*(height-2*pad);
+    return [px,py];
+  };
+  const pts = data.map(d=>pt(d).join(",")).join(" ");
+  return (
+    <svg viewBox={`0 0 ${width} ${height}`} width="100%" height={height} preserveAspectRatio="none">
+      <polyline points={pts} fill="none" stroke={color} strokeWidth="2.5" />
+      {data.map((d,i)=>{ const [px,py]=pt(d); return <circle key={i} cx={px} cy={py} r="3" fill={color} />; })}
+    </svg>
+  );
+}
+function BarCompareSVG({ data, height=160 }) {
+  if (!data || data.length < 1) return <p className="dim small">Aún no hay suficientes datos.</p>;
+  const width=320, pad=10;
+  const maxV = Math.max(...data.flatMap(d=>[d.real, d.objetivo||0]), 1);
+  const groupW = (width-2*pad)/data.length;
+  const barW = Math.min(14, groupW/3);
+  return (
+    <svg viewBox={`0 0 ${width} ${height}`} width="100%" height={height}>
+      {data.map((d,i)=>{
+        const gx = pad + i*groupW + groupW/2;
+        const hReal = (d.real/maxV)*(height-2*pad);
+        const hObj = ((d.objetivo||0)/maxV)*(height-2*pad);
+        return (<g key={i}>
+          <rect x={gx-barW-2} y={height-pad-hReal} width={barW} height={hReal} fill="#FF4B26" rx="2" />
+          <rect x={gx+2} y={height-pad-hObj} width={barW} height={hObj} fill="#3A3C44" rx="2" />
+        </g>);
+      })}
+    </svg>
+  );
+}
+
+/* ============================================================
+   COMPONENTES CHICOS
+============================================================ */
+function SaveBadge({ status, storageOK }) {
+  if (storageOK === false) return <span className="badge badge-danger">🚫☁️ sin almacenamiento</span>;
+  if (status === "saved") return <span className="badge badge-ok">✓ guardado</span>;
+  return <span className="badge badge-dim">☁️ local</span>;
+}
+function RPEPicker({ value, onChange }) {
+  return (
+    <div className="rpe-row">
+      {[1,2,3,4,5,6,7,8,9,10].map(v=>(
+        <button key={v} className={"rpe-dot"+(value===v?" rpe-dot-active":"")} onClick={()=>onChange(v===value?null:v)}>{v}</button>
+      ))}
+    </div>
+  );
+}
+function MacroBar({ label, actual, target, unit, color }) {
+  const pct = target ? Math.min(100, Math.round((actual/target)*100)) : 0;
+  return (
+    <div className="macro-bar-wrap">
+      <div className="macro-bar-labels"><span>{label}</span><span className="mono">{Math.round(actual)}{unit} / {target ?? "—"}{unit}</span></div>
+      <div className="macro-bar-track"><div className="macro-bar-fill" style={{ width: pct+"%", background: color }} /></div>
+    </div>
+  );
+}
+
+/* ============================================================
+   APP PRINCIPAL
+============================================================ */
+function HyroxTracker() {
+  const [loaded, setLoaded] = useState(false);
+  const [storageOK, setStorageOK] = useState(true);
+  const [data, setData] = useState(defaultData());
+  const [apiKey, setApiKey] = useState("");
+  const [activeTab, setActiveTab] = useState("dia");
+  const [selectedDay, setSelectedDay] = useState(todayPlanDay());
+  const [saveStatus, setSaveStatus] = useState("idle");
+  const hasHydrated = useRef(false);
+  const dayStripRef = useRef(null);
+
+  useEffect(() => {
+    const ok = storageAvailable();
+    setStorageOK(ok);
+    setData(loadLS(LS_DATA_KEY, defaultData()));
+    setApiKey(loadLS(LS_KEY_KEY, ""));
+    hasHydrated.current = true;
+    setLoaded(true);
+  }, []);
+
+  useEffect(() => {
+    if (!hasHydrated.current) return;
+    const ok = saveLS(LS_DATA_KEY, data);
+    setSaveStatus(ok ? "saved" : "error");
+    if (ok) { const t = setTimeout(()=>setSaveStatus("idle"), 1500); return ()=>clearTimeout(t); }
+  }, [data]);
+
+  useEffect(() => { if (hasHydrated.current) saveLS(LS_KEY_KEY, apiKey); }, [apiKey]);
+
+  const getDayRecord = useCallback((n) => data.days[String(n)] || emptyDayRecord(), [data.days]);
+  const updateDay = useCallback((n, updater) => {
+    setData(prev => {
+      const key = String(n);
+      const current = prev.days[key] || emptyDayRecord();
+      return { ...prev, days: { ...prev.days, [key]: updater(current) } };
+    });
+  }, []);
+  const registerFrequent = useCallback((meal) => {
+    setData(prev => {
+      const list = [...prev.frequentFoods];
+      const idx = list.findIndex(f => f.name.toLowerCase() === meal.name.toLowerCase());
+      if (idx>=0) list[idx] = { ...list[idx], count:(list[idx].count||1)+1, kcal:meal.kcal, protein:meal.protein, carbs:meal.carbs, fat:meal.fat };
+      else list.push({ name:meal.name, kcal:meal.kcal, protein:meal.protein, carbs:meal.carbs, fat:meal.fat, count:1 });
+      list.sort((a,b)=>(b.count||1)-(a.count||1));
+      return { ...prev, frequentFoods: list.slice(0,14) };
+    });
+  }, []);
+
+  const sd = SCHEDULE[selectedDay-1];
+  const rec = getDayRecord(selectedDay);
+  const daysToRace = Math.max(0, TOTAL_DAYS - todayPlanDay());
+
+  useEffect(() => {
+    if (dayStripRef.current) {
+      const el = dayStripRef.current.querySelector(`[data-day="${selectedDay}"]`);
+      if (el) el.scrollIntoView({ behavior:"smooth", inline:"center", block:"nearest" });
+    }
+  }, [selectedDay]);
+
+  if (!loaded) {
+    return <div className="app-root center-screen"><span className="spin">⏳</span><p className="dim">Cargando…</p></div>;
+  }
+
+  return (
+    <div className="app-root">
+      <header className="app-header">
+        <div className="header-top">
+          <div>
+            <h1>Hyrox Acapulco</h1>
+            <p className="dim small">D-{daysToRace} para la carrera · 6 sep 2026</p>
+          </div>
+          <SaveBadge status={saveStatus} storageOK={storageOK} />
+        </div>
+      </header>
+
+      {!storageOK && (
+        <div className="banner banner-danger">⚠️ <span>Tu navegador está bloqueando el almacenamiento local (¿modo privado?). Cambia a modo normal para no perder tu progreso.</span></div>
+      )}
+      {!apiKey && (
+        <div className="banner banner-warn">🔑 <span>Agrega tu API key en la pestaña Datos para usar el cálculo de macros con IA y las fotos de báscula/Watch.</span></div>
+      )}
+
+      <div className="day-strip" ref={dayStripRef}>
+        {SCHEDULE.map(d => {
+          const r = getDayRecord(d.n);
+          const anyDone = r.done.hyrox || r.done.pesas || r.done.correr;
+          return (
+            <button key={d.n} data-day={d.n}
+              className={"day-chip"+(d.n===selectedDay?" day-chip-active":"")+(d.isRest?" day-chip-rest":"")+(d.isRaceDay?" day-chip-race":"")}
+              onClick={()=>setSelectedDay(d.n)}>
+              <span className="day-chip-n mono">{d.n}</span>
+              <span className="day-chip-dow">{DOW_LABELS[d.dow]}</span>
+              {anyDone && <span className="day-chip-check">✓</span>}
+            </button>
+          );
+        })}
+      </div>
+
+      <main className="app-main">
+        {activeTab==="dia" && <DiaTab sd={sd} rec={rec} selectedDay={selectedDay} setSelectedDay={setSelectedDay} updateDay={updateDay} registerFrequent={registerFrequent} frequentFoods={data.frequentFoods} apiKey={apiKey} />}
+        {activeTab==="rendimiento" && <RendimientoTab sd={sd} rec={rec} selectedDay={selectedDay} updateDay={updateDay} allDays={data.days} apiKey={apiKey} />}
+        {activeTab==="progreso" && <ProgresoTab allDays={data.days} />}
+        {activeTab==="datos" && <DatosTab data={data} setData={setData} apiKey={apiKey} setApiKey={setApiKey} />}
+      </main>
+
+      <nav className="bottom-nav">
+        <NavBtn ico="📅" label="Día" active={activeTab==="dia"} onClick={()=>setActiveTab("dia")} />
+        <NavBtn ico="🏆" label="Rendimiento" active={activeTab==="rendimiento"} onClick={()=>setActiveTab("rendimiento")} />
+        <NavBtn ico="⚖️" label="Progreso" active={activeTab==="progreso"} onClick={()=>setActiveTab("progreso")} />
+        <NavBtn ico="⚙️" label="Datos" active={activeTab==="datos"} onClick={()=>setActiveTab("datos")} />
+      </nav>
+    </div>
+  );
+}
+function NavBtn({ ico, label, active, onClick }) {
+  return <button className={"nav-btn"+(active?" nav-btn-active":"")} onClick={onClick}><span className="nav-ico">{ico}</span><span>{label}</span></button>;
+}
+
+/* ============================================================
+   TAB: DÍA A DÍA
+============================================================ */
+function DiaTab({ sd, rec, selectedDay, setSelectedDay, updateDay, registerFrequent, frequentFoods, apiKey }) {
+  const target = getMacroTarget(sd);
+  const totals = useMemo(()=>rec.meals.reduce((acc,m)=>({kcal:acc.kcal+(m.kcal||0),protein:acc.protein+(m.protein||0),carbs:acc.carbs+(m.carbs||0),fat:acc.fat+(m.fat||0)}),{kcal:0,protein:0,carbs:0,fat:0}), [rec.meals]);
+  const [customOpen, setCustomOpen] = useState(false);
+  const [aiOpen, setAiOpen] = useState(false);
+  const [scalePhotoOpen, setScalePhotoOpen] = useState(false);
+
+  const toggleDone = (type) => updateDay(selectedDay, d=>({ ...d, done:{ ...d.done, [type]: !d.done[type] } }));
+  const setRpe = (type, v) => updateDay(selectedDay, d=>({ ...d, rpe:{ ...d.rpe, [type]: v } }));
+  const addMeal = (meal) => { updateDay(selectedDay, d=>({ ...d, meals:[...d.meals, { id: Date.now()+Math.random(), ...meal }] })); registerFrequent(meal); };
+  const removeMeal = (id) => updateDay(selectedDay, d=>({ ...d, meals: d.meals.filter(m=>m.id!==id) }));
+  const setBodycheck = (field, val) => updateDay(selectedDay, d=>({ ...d, bodycheck:{ ...d.bodycheck, [field]: val } }));
+  const applyScalePhoto = (r) => {
+    updateDay(selectedDay, d => ({ ...d, bodycheck: {
+      weight: r.weight_kg!=null ? r.weight_kg : d.bodycheck.weight,
+      bodyfat: r.bodyfat_pct!=null ? r.bodyfat_pct : d.bodycheck.bodyfat,
+      extra: [
+        r.muscle_kg!=null?`Músculo: ${r.muscle_kg}kg`:null,
+        r.visceral_fat!=null?`Grasa visceral: ${r.visceral_fat}`:null,
+        r.water_pct!=null?`Agua: ${r.water_pct}%`:null,
+      ].filter(Boolean).join(" · "),
+    }}));
+    setScalePhotoOpen(false);
+  };
+
+  return (
+    <div className="tab-pad">
+      <div className="day-title-row">
+        <button className="icon-btn" onClick={()=>setSelectedDay(Math.max(1,selectedDay-1))}>←</button>
+        <div className="center">
+          <div className="day-title">Día {selectedDay} · {fmtShort(sd.date)}</div>
+          <div className="dim small">{phaseLabel(sd.phase, sd.isRaceDay)}{sd.isRest?" · Descanso":""}</div>
+        </div>
+        <button className="icon-btn" onClick={()=>setSelectedDay(Math.min(TOTAL_DAYS,selectedDay+1))}>→</button>
+      </div>
+
+      {sd.isRaceDay && <div className="card card-accent"><div className="card-title">🏆 Día de carrera</div><p className="small">Sin macro fijo — sigue el protocolo pre/durante/post. Registra tus tiempos reales en Rendimiento en cuanto puedas.</p></div>}
+      {sd.isRest && !sd.isRaceDay && <div className="card"><p className="small dim">Descanso. Aprovecha para dormir bien.</p></div>}
+
+      {!sd.isRest && (
+        <div className="card">
+          <div className="card-title">Entrenamiento</div>
+          {sd.hyroxClass && <TrainRow ico="🏃" label={sd.highIntensity?"Hyrox/HIIT (con carrera)":"Hyrox/HIIT"} done={rec.done.hyrox} onToggle={()=>toggleDone("hyrox")} rpe={rec.rpe.hyrox} onRpe={v=>setRpe("hyrox",v)} />}
+          {sd.pesas && <TrainRow ico="🏋️" label="Pesas" done={rec.done.pesas} onToggle={()=>toggleDone("pesas")} rpe={rec.rpe.pesas} onRpe={v=>setRpe("pesas",v)} />}
+          {sd.correr && <TrainRow ico="🏃" label={`Correr Z2 (${sd.correrMin} min)`} done={rec.done.correr} onToggle={()=>toggleDone("correr")} rpe={rec.rpe.correr} onRpe={v=>setRpe("correr",v)} />}
+        </div>
+      )}
+
+      {target && (
+        <div className="card">
+          <div className="card-title">Macros de hoy</div>
+          <MacroBar label="Kcal" actual={totals.kcal} target={target.kcal} unit="" color="var(--accent)" />
+          <MacroBar label="Proteína" actual={totals.protein} target={target.protein} unit="g" color="var(--accent-3)" />
+          <MacroBar label="Carbos" actual={totals.carbs} target={target.carbs} unit="g" color="var(--accent-2)" />
+          <MacroBar label="Grasa" actual={totals.fat} target={target.fat} unit="g" color="var(--warn)" />
+        </div>
+      )}
+
+      <div className="card">
+        <div className="card-title">Comidas</div>
+        {rec.meals.length===0 && <p className="dim small">Aún no registras comidas hoy.</p>}
+        {rec.meals.map(m=>(
+          <div key={m.id} className="meal-row">
+            <div><div className="meal-name">{m.name}</div><div className="dim small mono">{Math.round(m.kcal)} kcal · P{Math.round(m.protein)} C{Math.round(m.carbs)} G{Math.round(m.fat)}</div></div>
+            <button className="icon-btn-danger" onClick={()=>removeMeal(m.id)}>✕</button>
+          </div>
+        ))}
+        {frequentFoods.length>0 && (
+          <div className="chip-row">
+            {frequentFoods.slice(0,8).map((f,i)=>(<button key={i} className="chip" onClick={()=>addMeal({name:f.name,kcal:f.kcal,protein:f.protein,carbs:f.carbs,fat:f.fat})}>{f.name}</button>))}
+          </div>
+        )}
+        <div className="btn-row">
+          <button className="btn btn-secondary" onClick={()=>setCustomOpen(v=>!v)}>➕ Manual</button>
+          <button className="btn btn-primary" onClick={()=>setAiOpen(v=>!v)}>✨ Calcular con IA</button>
+        </div>
+        {customOpen && <CustomMealForm onAdd={m=>{addMeal(m); setCustomOpen(false);}} onClose={()=>setCustomOpen(false)} />}
+        {aiOpen && <AiMealForm apiKey={apiKey} onAdd={m=>{addMeal(m); setAiOpen(false);}} onClose={()=>setAiOpen(false)} />}
+      </div>
+
+      <div className="card">
+        <div className="card-title">⚖️ Peso corporal (opcional)</div>
+        {!scalePhotoOpen
+          ? <button className="btn btn-primary" style={{marginBottom:10}} onClick={()=>setScalePhotoOpen(true)}>📷 Foto de la báscula</button>
+          : <div style={{marginBottom:10}}><PhotoExtractForm apiKey={apiKey} tipo="bascula" onApply={applyScalePhoto} onClose={()=>setScalePhotoOpen(false)} /></div>}
+        <div className="two-col">
+          <div><label className="dim small">Peso (kg)</label><input className="input" type="number" inputMode="decimal" placeholder="—" value={rec.bodycheck.weight ?? ""} onChange={e=>setBodycheck("weight", e.target.value===""?null:parseFloat(e.target.value))} /></div>
+          <div><label className="dim small">% Grasa</label><input className="input" type="number" inputMode="decimal" placeholder="—" value={rec.bodycheck.bodyfat ?? ""} onChange={e=>setBodycheck("bodyfat", e.target.value===""?null:parseFloat(e.target.value))} /></div>
+        </div>
+        {rec.bodycheck.extra && <p className="dim small">{rec.bodycheck.extra}</p>}
+      </div>
+    </div>
+  );
+}
+function TrainRow({ ico, label, done, onToggle, rpe, onRpe }) {
+  return (
+    <div className="train-row">
+      <button className={"train-toggle"+(done?" train-toggle-done":"")} onClick={onToggle}>
+        <span>{ico}</span><span>{label}</span><span className="train-check">{done?"✓":""}</span>
+      </button>
+      {done && <div className="rpe-wrap"><span className="dim small">RPE</span><RPEPicker value={rpe} onChange={onRpe} /></div>}
+    </div>
+  );
+}
+function CustomMealForm({ onAdd, onClose }) {
+  const [f, setF] = useState({ name:"", kcal:"", protein:"", carbs:"", fat:"" });
+  const valid = f.name.trim() && f.kcal !== "";
+  return (
+    <div className="inline-form">
+      <input className="input" placeholder="Nombre del alimento" value={f.name} onChange={e=>setF({...f,name:e.target.value})} />
+      <div className="four-col">
+        <input className="input" type="number" inputMode="decimal" placeholder="Kcal" value={f.kcal} onChange={e=>setF({...f,kcal:e.target.value})} />
+        <input className="input" type="number" inputMode="decimal" placeholder="Prot" value={f.protein} onChange={e=>setF({...f,protein:e.target.value})} />
+        <input className="input" type="number" inputMode="decimal" placeholder="Carb" value={f.carbs} onChange={e=>setF({...f,carbs:e.target.value})} />
+        <input className="input" type="number" inputMode="decimal" placeholder="Grasa" value={f.fat} onChange={e=>setF({...f,fat:e.target.value})} />
+      </div>
+      <div className="btn-row">
+        <button className="btn btn-ghost" onClick={onClose}>Cancelar</button>
+        <button className="btn btn-primary" disabled={!valid} onClick={()=>onAdd({name:f.name.trim(), kcal:parseFloat(f.kcal)||0, protein:parseFloat(f.protein)||0, carbs:parseFloat(f.carbs)||0, fat:parseFloat(f.fat)||0})}>Agregar</button>
+      </div>
+    </div>
+  );
+}
+function AiMealForm({ apiKey, onAdd, onClose }) {
+  const [desc, setDesc] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [result, setResult] = useState(null);
+  const calcular = async () => {
+    if (!desc.trim()) return;
+    if (!apiKey) { setError("Agrega tu API key en la pestaña Datos primero."); return; }
+    setLoading(true); setError(""); setResult(null);
+    try { setResult(await calcularMacrosIA(apiKey, desc)); }
+    catch(e) { setError("No se pudo calcular: " + e.message); }
+    finally { setLoading(false); }
+  };
+  return (
+    <div className="inline-form">
+      <input className="input" placeholder="Ej. 2 huevos revueltos con 1 tortilla" value={desc} onChange={e=>setDesc(e.target.value)} />
+      {!result && (
+        <div className="btn-row">
+          <button className="btn btn-ghost" onClick={onClose}>Cancelar</button>
+          <button className="btn btn-primary" disabled={loading || !desc.trim()} onClick={calcular}>{loading?"Calculando…":"✨ Calcular"}</button>
+        </div>
+      )}
+      {error && <p className="small" style={{color:"var(--danger)"}}>{error}</p>}
+      {result && (
+        <div className="ai-result">
+          <div className="meal-name">{result.name}</div>
+          <div className="dim small mono">{Math.round(result.kcal)} kcal · P{Math.round(result.protein)} C{Math.round(result.carbs)} G{Math.round(result.fat)}</div>
+          <div className="btn-row"><button className="btn btn-ghost" onClick={onClose}>Descartar</button><button className="btn btn-primary" onClick={()=>onAdd(result)}>Agregar</button></div>
+        </div>
+      )}
+    </div>
+  );
+}
+function PhotoExtractForm({ apiKey, tipo, onApply, onClose }) {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [result, setResult] = useState(null);
+  const inputRef = useRef(null);
+  const onFile = async (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    if (!apiKey) { setError("Agrega tu API key en la pestaña Datos primero."); return; }
+    setLoading(true); setError(""); setResult(null);
+    try { setResult(await extraerFotoIA(apiKey, file, tipo)); }
+    catch(e) { setError("No pude leer la foto: " + e.message); }
+    finally { setLoading(false); }
+  };
+  return (
+    <div className="inline-form">
+      {!result && !loading && (
+        <>
+          <button className="btn btn-secondary" onClick={()=>inputRef.current && inputRef.current.click()}>📷 Tomar / elegir foto</button>
+          <input ref={inputRef} type="file" accept="image/*" style={{display:"none"}} onChange={onFile} />
+          <button className="btn btn-ghost" onClick={onClose}>Cancelar</button>
+        </>
+      )}
+      {loading && <p className="dim small">⏳ Leyendo la foto…</p>}
+      {error && <p className="small" style={{color:"var(--danger)"}}>{error}</p>}
+      {result && (
+        <div className="ai-result">
+          {Object.entries(result).map(([k,v])=>(<div key={k} className="dim small mono">{k}: {v===null?"—":String(v)}</div>))}
+          <div className="btn-row"><button className="btn btn-ghost" onClick={onClose}>Descartar</button><button className="btn btn-primary" onClick={()=>onApply(result)}>Usar estos datos</button></div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ============================================================
+   TAB: RENDIMIENTO
+============================================================ */
+function RendimientoTab({ sd, rec, selectedDay, updateDay, allDays, apiKey }) {
+  const perf = rec.performance;
+  const setPerf = (field, val) => updateDay(selectedDay, d=>({ ...d, performance:{ ...d.performance, [field]: val } }));
+  const addSegment = () => setPerf("segments", [...perf.segments, { id: Date.now(), label:"", value:"" }]);
+  const updateSegment = (id, field, val) => setPerf("segments", perf.segments.map(s=>s.id===id?{...s,[field]:val}:s));
+  const removeSegment = (id) => setPerf("segments", perf.segments.filter(s=>s.id!==id));
+  const [watchPhotoOpen, setWatchPhotoOpen] = useState(false);
+  const applyWatchPhoto = (r) => {
+    updateDay(selectedDay, d => {
+      const extras = [
+        r.tipo?`Tipo: ${r.tipo}`:null,
+        r.distance_km!=null?`Distancia: ${r.distance_km}km`:null,
+        r.pace?`Ritmo: ${r.pace}`:null,
+        r.calories!=null?`Calorías: ${r.calories}`:null,
+      ].filter(Boolean);
+      return { ...d, performance: {
+        ...d.performance,
+        durationMin: r.duration_min!=null ? r.duration_min : d.performance.durationMin,
+        hrAvg: r.hr_avg!=null ? r.hr_avg : d.performance.hrAvg,
+        hrMax: r.hr_max!=null ? r.hr_max : d.performance.hrMax,
+        segments: extras.length ? [...d.performance.segments, { id: Date.now(), label:"Apple Watch", value: extras.join(" · ") }] : d.performance.segments,
+      }};
+    });
+    setWatchPhotoOpen(false);
+  };
+  const history = useMemo(()=>Object.entries(allDays)
+    .filter(([,d])=>d.performance && (d.performance.durationMin || (d.performance.segments||[]).length))
+    .map(([n,d])=>({n:parseInt(n), ...d.performance}))
+    .sort((a,b)=>b.n-a.n), [allDays]);
+
+  return (
+    <div className="tab-pad">
+      <div className="card">
+        <div className="card-title">🏆 Día {selectedDay} · {fmtShort(sd.date)}</div>
+        <p className="dim small">Sube una foto del resumen de tu Apple Watch y se llenan solos los campos, o captúralos manualmente.</p>
+        {!watchPhotoOpen
+          ? <button className="btn btn-primary" style={{marginBottom:10}} onClick={()=>setWatchPhotoOpen(true)}>📷 Foto del Apple Watch</button>
+          : <div style={{marginBottom:10}}><PhotoExtractForm apiKey={apiKey} tipo="watch" onApply={applyWatchPhoto} onClose={()=>setWatchPhotoOpen(false)} /></div>}
+        <div className="two-col">
+          <div><label className="dim small">Duración total (min)</label><input className="input" type="number" inputMode="decimal" placeholder="—" value={perf.durationMin ?? ""} onChange={e=>setPerf("durationMin", e.target.value===""?null:parseFloat(e.target.value))} /></div>
+          <div><label className="dim small">RPE sesión</label><input className="input" type="number" min="1" max="10" placeholder="—" value={perf.rpeSession ?? ""} onChange={e=>setPerf("rpeSession", e.target.value===""?null:parseInt(e.target.value))} /></div>
+        </div>
+        <div className="two-col">
+          <div><label className="dim small">❤️ FC promedio</label><input className="input" type="number" placeholder="—" value={perf.hrAvg ?? ""} onChange={e=>setPerf("hrAvg", e.target.value===""?null:parseInt(e.target.value))} /></div>
+          <div><label className="dim small">❤️ FC máxima</label><input className="input" type="number" placeholder="—" value={perf.hrMax ?? ""} onChange={e=>setPerf("hrMax", e.target.value===""?null:parseInt(e.target.value))} /></div>
+        </div>
+        <div className="card-title" style={{marginTop:12}}>Detalle (estaciones, splits o pesos)</div>
+        {perf.segments.map(s=>(
+          <div key={s.id} className="segment-row">
+            <input className="input" placeholder="Ej. SkiErg / Km 3 / Sentadilla" value={s.label} onChange={e=>updateSegment(s.id,"label",e.target.value)} />
+            <input className="input segment-value" placeholder="1:32 / 80kg x8" value={s.value} onChange={e=>updateSegment(s.id,"value",e.target.value)} />
+            <button className="icon-btn-danger" onClick={()=>removeSegment(s.id)}>✕</button>
+          </div>
+        ))}
+        <button className="btn btn-secondary" onClick={addSegment}>➕ Agregar línea</button>
+        <label className="dim small" style={{marginTop:10,display:"block"}}>Notas</label>
+        <textarea className="input" rows="2" placeholder="Cómo te sentiste, condiciones, etc." value={perf.notes} onChange={e=>setPerf("notes", e.target.value)} />
+      </div>
+      <div className="card">
+        <div className="card-title">Historial</div>
+        {history.length===0 && <p className="dim small">Aún no hay sesiones registradas con detalle.</p>}
+        {history.map(h=>(
+          <div key={h.n} className="history-row">
+            <div className="mono day-title" style={{fontSize:14}}>Día {h.n}</div>
+            <div className="dim small">{h.durationMin?`${h.durationMin} min`:""}{h.hrAvg?` · FC prom ${h.hrAvg}`:""}{h.rpeSession?` · RPE ${h.rpeSession}`:""}</div>
+            {h.segments && h.segments.length>0 && <div className="dim small">{h.segments.map(s=>`${s.label}: ${s.value}`).join(" · ")}</div>}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================
+   TAB: PROGRESO
+============================================================ */
+function ProgresoTab({ allDays }) {
+  const rows = useMemo(()=>SCHEDULE.map(sd=>({ sd, d: allDays[String(sd.n)] || null })), [allDays]);
+  const weightSeries = rows.filter(r=>r.d && r.d.bodycheck && r.d.bodycheck.weight!=null).map(r=>({x:r.sd.n,y:r.d.bodycheck.weight}));
+  const fatSeries = rows.filter(r=>r.d && r.d.bodycheck && r.d.bodycheck.bodyfat!=null).map(r=>({x:r.sd.n,y:r.d.bodycheck.bodyfat}));
+  const hrSeries = rows.filter(r=>r.d && r.d.performance && r.d.performance.hrAvg!=null).map(r=>({x:r.sd.n,y:r.d.performance.hrAvg}));
+  const kcalSeries = rows.filter(r=>r.d && r.d.meals && r.d.meals.length>0).map(r=>{
+    const target = getMacroTarget(r.sd);
+    const actual = r.d.meals.reduce((a,m)=>a+(m.kcal||0),0);
+    return { x:r.sd.n, real:Math.round(actual), objetivo: target?target.kcal:null };
+  }).slice(-14);
+  const elapsed = rows.filter(r=>r.sd.n<=todayPlanDay());
+  const trained = elapsed.filter(r=>r.d && (r.d.done.hyrox||r.d.done.pesas||r.d.done.correr) && !r.sd.isRest);
+  const trainableDays = elapsed.filter(r=>!r.sd.isRest).length;
+  const adherence = trainableDays ? Math.round((trained.length/trainableDays)*100) : 0;
+  const rpeVals = elapsed.flatMap(r=>r.d?[r.d.rpe.hyrox,r.d.rpe.pesas,r.d.rpe.correr]:[]).filter(v=>v!=null);
+  const avgRpe = rpeVals.length ? (rpeVals.reduce((a,b)=>a+b,0)/rpeVals.length).toFixed(1) : "—";
+
+  return (
+    <div className="tab-pad">
+      <div className="stat-grid">
+        <StatCard label="Asistencia" value={`${adherence}%`} />
+        <StatCard label="RPE promedio" value={avgRpe} />
+        <StatCard label="Registros de peso" value={weightSeries.length} />
+        <StatCard label="Días transcurridos" value={`${Math.min(todayPlanDay(),TOTAL_DAYS)}/${TOTAL_DAYS}`} />
+      </div>
+      <ChartCard title="Peso corporal (kg)"><LineChartSVG data={weightSeries} color="#FF4B26" /></ChartCard>
+      <ChartCard title="% Grasa corporal"><LineChartSVG data={fatSeries} color="#7CD957" /></ChartCard>
+      <ChartCard title="Kcal reales vs objetivo (últimos días)"><BarCompareSVG data={kcalSeries} /></ChartCard>
+      <ChartCard title="FC promedio de entrenamiento"><LineChartSVG data={hrSeries} color="#4EA1FF" /></ChartCard>
+    </div>
+  );
+}
+function StatCard({ label, value }) { return <div className="stat-card"><div className="stat-value mono">{value}</div><div className="dim small">{label}</div></div>; }
+function ChartCard({ title, children }) { return <div className="card"><div className="card-title">{title}</div>{children}</div>; }
+
+/* ============================================================
+   TAB: DATOS (ajustes + respaldo)
+============================================================ */
+function DatosTab({ data, setData, apiKey, setApiKey }) {
+  const [showKey, setShowKey] = useState(false);
+  const [showExport, setShowExport] = useState(false);
+  const [showImport, setShowImport] = useState(false);
+  const [importText, setImportText] = useState("");
+  const [importMsg, setImportMsg] = useState("");
+  const [resetArmed, setResetArmed] = useState(false);
+  const exportRef = useRef(null);
+  const exportText = useMemo(()=>JSON.stringify(data), [data]);
+
+  const doImport = () => {
+    try {
+      const parsed = JSON.parse(importText);
+      if (!parsed || typeof parsed !== "object" || !parsed.days) throw new Error("formato");
+      setData(parsed);
+      setImportMsg("✓ Restaurado correctamente.");
+      setImportText("");
+    } catch(e) { setImportMsg("No reconozco ese texto — revisa que sea justo lo que copiaste de Exportar."); }
+  };
+  const doReset = () => {
+    if (!resetArmed) { setResetArmed(true); setTimeout(()=>setResetArmed(false),5000); return; }
+    setData(defaultData());
+    setResetArmed(false);
+  };
+
+  return (
+    <div className="tab-pad">
+      <div className="card">
+        <div className="card-title">🔑 Tu API key de Anthropic</div>
+        <p className="dim small">Necesaria solo para "Calcular con IA" y las fotos de báscula/Watch. Créala gratis en <b>console.anthropic.com</b> → API Keys. El uso tiene costo mínimo (fracciones de centavo por consulta), cargado a esa cuenta — no a tu suscripción de Claude.</p>
+        <div style={{display:"flex", gap:8}}>
+          <input className="input" type={showKey?"text":"password"} placeholder="sk-ant-..." value={apiKey} onChange={e=>setApiKey(e.target.value)} />
+          <button className="btn btn-secondary" style={{flex:"0 0 auto"}} onClick={()=>setShowKey(s=>!s)}>{showKey?"Ocultar":"Ver"}</button>
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="card-title">⬇️ Exportar respaldo</div>
+        <p className="dim small">Genera un bloque de texto con todo tu progreso. Pégalo en Notas o mándatelo por WhatsApp como respaldo.</p>
+        {!showExport
+          ? <button className="btn btn-primary" onClick={()=>setShowExport(true)}>⬇️ Preparar exportación</button>
+          : <>
+              <textarea ref={exportRef} className="input mono" rows="5" readOnly value={exportText} onFocus={e=>e.target.select()} />
+              <button className="btn btn-secondary" onClick={()=>{exportRef.current && exportRef.current.select();}}>📋 Seleccionar todo</button>
+            </>}
+      </div>
+
+      <div className="card">
+        <div className="card-title">⬆️ Restaurar desde respaldo</div>
+        <p className="dim small">Pega aquí el texto que exportaste antes. Esto reemplaza lo que hay ahora.</p>
+        {!showImport
+          ? <button className="btn btn-secondary" onClick={()=>setShowImport(true)}>⬆️ Pegar respaldo</button>
+          : <>
+              <textarea className="input mono" rows="5" placeholder="Pega aquí el JSON exportado" value={importText} onChange={e=>setImportText(e.target.value)} />
+              <div className="btn-row">
+                <button className="btn btn-ghost" onClick={()=>{setShowImport(false); setImportText(""); setImportMsg("");}}>Cancelar</button>
+                <button className="btn btn-primary" disabled={!importText.trim()} onClick={doImport}>Restaurar</button>
+              </div>
+              {importMsg && <p className="small">{importMsg}</p>}
+            </>}
+      </div>
+
+      <div className="card card-danger-zone">
+        <div className="card-title">⚠️ Reiniciar todo</div>
+        <p className="dim small">Borra todos tus registros de esta app. Exporta un respaldo antes si no estás seguro.</p>
+        <button className="btn btn-danger" onClick={doReset}>{resetArmed ? "Toca de nuevo para confirmar" : "🔄 Reiniciar datos"}</button>
+      </div>
+    </div>
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById("root"));
+root.render(<HyroxTracker />);
+</script>
+</body>
+</html>
