@@ -72,6 +72,10 @@ body {
 .train-toggle-done { border-color: var(--accent-2); background: rgba(124,217,87,0.08); }
 .train-check { margin-left: auto; color: var(--accent-2); }
 .rpe-wrap { display: flex; align-items: center; gap: 8px; margin-top: 6px; padding-left: 4px; }
+.routine-toggle { background: none; border: none; color: var(--accent-3); font-size: 12px; padding: 6px 4px 2px; }
+.routine-box { background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; margin: 4px 0 6px; }
+.routine-title { font-weight: 700; font-size: 12.5px; margin-bottom: 6px; }
+.routine-list { margin: 0; padding-left: 18px; font-size: 12.5px; color: var(--text); line-height: 1.7; }
 .rpe-row { display: flex; gap: 3px; flex-wrap: wrap; }
 .rpe-dot { width: 22px; height: 22px; border-radius: 6px; background: var(--surface-2); border: 1px solid var(--border); color: var(--dim); font-size: 10px; }
 .rpe-dot-active { background: var(--accent); color: #fff; border-color: var(--accent); }
@@ -150,18 +154,19 @@ function buildSchedule() {
     const isRaceDay = n === TOTAL_DAYS;
     const isRest = dow === 6 && !isRaceDay;
     const hyroxClass = !isRest && !isRaceDay;
-    let pesas = false, correr = false, correrMin = null;
+    let pesas = false, correr = false, correrMin = null, pesasDay = null;
     if (hyroxClass) {
       if (phase === 1) {
-        if (dow === 1 || dow === 3) pesas = true;
+        if (dow === 1) { pesas = true; pesasDay = "A"; }
+        if (dow === 3) { pesas = true; pesasDay = "B"; }
         if (dow === 2 || dow === 4) { correr = true; const week = Math.ceil(n/7); correrMin = Math.min(22, 12 + (week-1)*3); }
       } else if (phase === 2) {
-        if (dow === 1) pesas = true;
+        if (dow === 1) { pesas = true; pesasDay = "full"; }
         if (dow === 2 || dow === 4) { correr = true; correrMin = 11; }
       }
     }
     const highIntensity = hyroxClass && (dow === 5 || dow === 0);
-    days.push({ n, date, dow, phase, isRaceDay, isRest, hyroxClass, pesas, correr, correrMin, highIntensity });
+    days.push({ n, date, dow, phase, isRaceDay, isRest, hyroxClass, pesas, correr, correrMin, pesasDay, highIntensity });
   }
   return days;
 }
@@ -188,13 +193,49 @@ function phaseLabel(p, isRaceDay) {
   if (p===3) return "Fase 3 · Carga de carbos";
   return "";
 }
+
+const ROUTINES = {
+  A: { title: "Día A · Empuje + Core", items: [
+    "Press banca (barra o mancuerna) — 4x6-8",
+    "Press militar con mancuernas — 3x8-10",
+    "Fondos en paralelas o press inclinado — 3x8-10",
+    "Elevaciones laterales — 3x12-15",
+    "Extensión de tríceps en polea — 3x12-15",
+    "Plancha — 3x40-60s",
+  ]},
+  B: { title: "Día B · Tracción + Piernas ligero", items: [
+    "Peso muerto rumano — 4x6-8",
+    "Remo con barra o mancuerna — 4x8-10",
+    "Jalón al pecho o dominadas — 3x8-10",
+    "Curl de bíceps — 3x10-12",
+    "Face pull — 3x15",
+    "Zancadas o sentadilla goblet (volumen bajo) — 3x10-12",
+  ]},
+  full: { title: "Full body · Mantenimiento", items: [
+    "Press banca — 3x6-8",
+    "Remo con barra — 3x8-10",
+    "Press militar — 2x8-10",
+    "Dominadas o jalón — 2x8-10",
+    "Core (plancha o similar) — 2x40-60s",
+  ]},
+};
+const CORRER_PROTOCOL = [
+  "Calentamiento: 3-5 min caminata rápida",
+  "Cuerpo: trote suave manteniendo FC en Zona 2 (~60-70% de tu FC máx, o el rango Z2 de tu Watch) por los minutos del día",
+  "Debe sentirse conversacional — si no puedes hablar en frases completas, vas muy rápido",
+  "Enfriamiento: 2-3 min caminando",
+];
+
 function emptyDayRecord() {
   return {
     done: { hyrox:false, pesas:false, correr:false },
     rpe: { hyrox:null, pesas:null, correr:null },
     meals: [],
     bodycheck: { weight:null, bodyfat:null, extra:"" },
-    performance: { durationMin:null, hrAvg:null, hrMax:null, rpeSession:null, segments:[], notes:"" },
+    performance: {
+      hyrox: { durationMin:null, hrAvg:null, hrMax:null, rpeSession:null, segments:[], notes:"" },
+      secondary: { durationMin:null, hrAvg:null, hrMax:null, rpeSession:null, segments:[], notes:"" },
+    },
   };
 }
 function defaultData() { return { version:1, days:{}, frequentFoods:[] }; }
@@ -286,6 +327,7 @@ async function fileToJpegBase64(file, maxDim=1200, quality=0.85) {
 const EXTRACT_PROMPTS = {
   bascula: `Esta es una foto de una báscula de bioimpedancia o de su app (ej. RENPHO), mostrando composición corporal. Lee los valores visibles con cuidado. Responde SOLO un objeto JSON sin texto extra ni backticks: {"weight_kg":0,"bodyfat_pct":0,"muscle_kg":null,"visceral_fat":null,"water_pct":null}. Si algún dato no aparece, usa null. No inventes valores.`,
   watch: `Esta es una foto o captura del resumen de un entrenamiento (Apple Watch o app Fitness/Actividad/Salud). Lee los valores visibles con cuidado. Responde SOLO un objeto JSON sin texto extra ni backticks: {"tipo":"","duration_min":0,"hr_avg":null,"hr_max":null,"calories":null,"distance_km":null,"pace":null}. Si algún dato no aparece, usa null. No inventes valores.`,
+  comida: `Eres nutriólogo. Esta es una foto de una comida o alimento real (no un empaque con etiqueta). Identifica qué es, estima el tamaño de la porción visible con cuidado (usa referencias de tamaño en la imagen: plato, mano, cubiertos) y calcula sus macros de la forma más precisa y realista posible según composición nutricional real de esos alimentos. Si hay varios elementos en el plato, súmalos en un solo total y descríbelos todos en "name". Responde SOLO un objeto JSON sin texto extra ni backticks: {"name":"...","kcal":0,"protein":0,"carbs":0,"fat":0}.`,
 };
 async function extraerFotoIA(apiKey, file, tipo) {
   const base64 = await fileToJpegBase64(file);
@@ -412,14 +454,20 @@ function HyroxTracker() {
     });
   }, []);
   const registerFrequent = useCallback((meal) => {
+    if (!meal || !meal.name || !String(meal.name).trim()) return;
     setData(prev => {
+      const name = String(meal.name).trim();
       const list = [...prev.frequentFoods];
-      const idx = list.findIndex(f => f.name.toLowerCase() === meal.name.toLowerCase());
-      if (idx>=0) list[idx] = { ...list[idx], count:(list[idx].count||1)+1, kcal:meal.kcal, protein:meal.protein, carbs:meal.carbs, fat:meal.fat };
-      else list.push({ name:meal.name, kcal:meal.kcal, protein:meal.protein, carbs:meal.carbs, fat:meal.fat, count:1 });
+      const idx = list.findIndex(f => f.name.toLowerCase() === name.toLowerCase());
+      const clean = { name, kcal:Number(meal.kcal)||0, protein:Number(meal.protein)||0, carbs:Number(meal.carbs)||0, fat:Number(meal.fat)||0 };
+      if (idx>=0) list[idx] = { ...list[idx], ...clean, count:(list[idx].count||1)+1 };
+      else list.push({ ...clean, count:1 });
       list.sort((a,b)=>(b.count||1)-(a.count||1));
-      return { ...prev, frequentFoods: list.slice(0,14) };
+      return { ...prev, frequentFoods: list.slice(0,20) };
     });
+  }, []);
+  const setFrequentFoods = useCallback((updater) => {
+    setData(prev => ({ ...prev, frequentFoods: updater(prev.frequentFoods) }));
   }, []);
 
   const sd = SCHEDULE[selectedDay-1];
@@ -476,7 +524,7 @@ function HyroxTracker() {
         {activeTab==="dia" && <DiaTab sd={sd} rec={rec} selectedDay={selectedDay} setSelectedDay={setSelectedDay} updateDay={updateDay} registerFrequent={registerFrequent} frequentFoods={data.frequentFoods} apiKey={apiKey} />}
         {activeTab==="rendimiento" && <RendimientoTab sd={sd} rec={rec} selectedDay={selectedDay} updateDay={updateDay} allDays={data.days} apiKey={apiKey} />}
         {activeTab==="progreso" && <ProgresoTab allDays={data.days} />}
-        {activeTab==="datos" && <DatosTab data={data} setData={setData} apiKey={apiKey} setApiKey={setApiKey} />}
+        {activeTab==="datos" && <DatosTab data={data} setData={setData} apiKey={apiKey} setApiKey={setApiKey} setFrequentFoods={setFrequentFoods} />}
       </main>
 
       <nav className="bottom-nav">
@@ -500,6 +548,7 @@ function DiaTab({ sd, rec, selectedDay, setSelectedDay, updateDay, registerFrequ
   const totals = useMemo(()=>rec.meals.reduce((acc,m)=>({kcal:acc.kcal+(m.kcal||0),protein:acc.protein+(m.protein||0),carbs:acc.carbs+(m.carbs||0),fat:acc.fat+(m.fat||0)}),{kcal:0,protein:0,carbs:0,fat:0}), [rec.meals]);
   const [customOpen, setCustomOpen] = useState(false);
   const [aiOpen, setAiOpen] = useState(false);
+  const [photoMealOpen, setPhotoMealOpen] = useState(false);
   const [scalePhotoOpen, setScalePhotoOpen] = useState(false);
 
   const toggleDone = (type) => updateDay(selectedDay, d=>({ ...d, done:{ ...d.done, [type]: !d.done[type] } }));
@@ -538,8 +587,8 @@ function DiaTab({ sd, rec, selectedDay, setSelectedDay, updateDay, registerFrequ
         <div className="card">
           <div className="card-title">Entrenamiento</div>
           {sd.hyroxClass && <TrainRow ico="🏃" label={sd.highIntensity?"Hyrox/HIIT (con carrera)":"Hyrox/HIIT"} done={rec.done.hyrox} onToggle={()=>toggleDone("hyrox")} rpe={rec.rpe.hyrox} onRpe={v=>setRpe("hyrox",v)} />}
-          {sd.pesas && <TrainRow ico="🏋️" label="Pesas" done={rec.done.pesas} onToggle={()=>toggleDone("pesas")} rpe={rec.rpe.pesas} onRpe={v=>setRpe("pesas",v)} />}
-          {sd.correr && <TrainRow ico="🏃" label={`Correr Z2 (${sd.correrMin} min)`} done={rec.done.correr} onToggle={()=>toggleDone("correr")} rpe={rec.rpe.correr} onRpe={v=>setRpe("correr",v)} />}
+          {sd.pesas && <TrainRow ico="🏋️" label="Pesas" done={rec.done.pesas} onToggle={()=>toggleDone("pesas")} rpe={rec.rpe.pesas} onRpe={v=>setRpe("pesas",v)} routine={ROUTINES[sd.pesasDay]} />}
+          {sd.correr && <TrainRow ico="🏃" label={`Correr Z2 (${sd.correrMin} min)`} done={rec.done.correr} onToggle={()=>toggleDone("correr")} rpe={rec.rpe.correr} onRpe={v=>setRpe("correr",v)} routine={{ title:"Protocolo Zona 2", items: CORRER_PROTOCOL }} />}
         </div>
       )}
 
@@ -569,10 +618,14 @@ function DiaTab({ sd, rec, selectedDay, setSelectedDay, updateDay, registerFrequ
         )}
         <div className="btn-row">
           <button className="btn btn-secondary" onClick={()=>setCustomOpen(v=>!v)}>➕ Manual</button>
-          <button className="btn btn-primary" onClick={()=>setAiOpen(v=>!v)}>✨ Calcular con IA</button>
+          <button className="btn btn-primary" onClick={()=>setAiOpen(v=>!v)}>✨ Texto con IA</button>
+        </div>
+        <div className="btn-row">
+          <button className="btn btn-primary" onClick={()=>setPhotoMealOpen(v=>!v)}>📷 Foto del platillo (IA)</button>
         </div>
         {customOpen && <CustomMealForm onAdd={m=>{addMeal(m); setCustomOpen(false);}} onClose={()=>setCustomOpen(false)} />}
         {aiOpen && <AiMealForm apiKey={apiKey} onAdd={m=>{addMeal(m); setAiOpen(false);}} onClose={()=>setAiOpen(false)} />}
+        {photoMealOpen && <AiPhotoMealForm apiKey={apiKey} onAdd={m=>{addMeal(m); setPhotoMealOpen(false);}} onClose={()=>setPhotoMealOpen(false)} />}
       </div>
 
       <div className="card">
@@ -589,12 +642,22 @@ function DiaTab({ sd, rec, selectedDay, setSelectedDay, updateDay, registerFrequ
     </div>
   );
 }
-function TrainRow({ ico, label, done, onToggle, rpe, onRpe }) {
+function TrainRow({ ico, label, done, onToggle, rpe, onRpe, routine }) {
+  const [open, setOpen] = useState(false);
   return (
     <div className="train-row">
       <button className={"train-toggle"+(done?" train-toggle-done":"")} onClick={onToggle}>
         <span>{ico}</span><span>{label}</span><span className="train-check">{done?"✓":""}</span>
       </button>
+      {routine && (
+        <button className="routine-toggle" onClick={()=>setOpen(o=>!o)}>{open?"▾ Ocultar rutina":"▸ Ver qué hacer"}</button>
+      )}
+      {open && routine && (
+        <div className="routine-box">
+          <div className="routine-title">{routine.title}</div>
+          <ul className="routine-list">{routine.items.map((it,i)=><li key={i}>{it}</li>)}</ul>
+        </div>
+      )}
       {done && <div className="rpe-wrap"><span className="dim small">RPE</span><RPEPicker value={rpe} onChange={onRpe} /></div>}
     </div>
   );
@@ -651,6 +714,42 @@ function AiMealForm({ apiKey, onAdd, onClose }) {
     </div>
   );
 }
+function AiPhotoMealForm({ apiKey, onAdd, onClose }) {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [result, setResult] = useState(null);
+  const inputRef = useRef(null);
+  const onFile = async (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    if (!apiKey) { setError("Agrega tu API key en la pestaña Datos primero."); return; }
+    setLoading(true); setError(""); setResult(null);
+    try { setResult(await extraerFotoIA(apiKey, file, "comida")); }
+    catch(e) { setError("No pude analizar la foto: " + e.message); }
+    finally { setLoading(false); }
+  };
+  return (
+    <div className="inline-form">
+      {!result && !loading && (
+        <>
+          <button className="btn btn-secondary" onClick={()=>inputRef.current && inputRef.current.click()}>📷 Tomar / elegir foto</button>
+          <input ref={inputRef} type="file" accept="image/*" style={{display:"none"}} onChange={onFile} />
+          <button className="btn btn-ghost" onClick={onClose}>Cancelar</button>
+        </>
+      )}
+      {loading && <p className="dim small">⏳ Analizando el platillo…</p>}
+      {error && <p className="small" style={{color:"var(--danger)"}}>{error}</p>}
+      {result && (
+        <div className="ai-result">
+          <div className="meal-name">{result.name}</div>
+          <div className="dim small mono">{Math.round(result.kcal)} kcal · P{Math.round(result.protein)} C{Math.round(result.carbs)} G{Math.round(result.fat)}</div>
+          <p className="dim small">Estimado por IA a partir de la foto — revisa que la porción tenga sentido antes de agregar.</p>
+          <div className="btn-row"><button className="btn btn-ghost" onClick={onClose}>Descartar</button><button className="btn btn-primary" onClick={()=>onAdd(result)}>Agregar</button></div>
+        </div>
+      )}
+    </div>
+  );
+}
 function PhotoExtractForm({ apiKey, tipo, onApply, onClose }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -689,72 +788,96 @@ function PhotoExtractForm({ apiKey, tipo, onApply, onClose }) {
 /* ============================================================
    TAB: RENDIMIENTO
 ============================================================ */
+function PerformanceSection({ title, ico, apiKey, perf, setPerf, photoTipo, extraHint }) {
+  const [photoOpen, setPhotoOpen] = useState(false);
+  const addSegment = () => setPerf({ ...perf, segments: [...perf.segments, { id: Date.now(), label:"", value:"" }] });
+  const updateSegment = (id, field, val) => setPerf({ ...perf, segments: perf.segments.map(s=>s.id===id?{...s,[field]:val}:s) });
+  const removeSegment = (id) => setPerf({ ...perf, segments: perf.segments.filter(s=>s.id!==id) });
+  const applyPhoto = (r) => {
+    const extras = [
+      r.tipo?`Tipo: ${r.tipo}`:null,
+      r.distance_km!=null?`Distancia: ${r.distance_km}km`:null,
+      r.pace?`Ritmo: ${r.pace}`:null,
+      r.calories!=null?`Calorías: ${r.calories}`:null,
+    ].filter(Boolean);
+    setPerf({
+      ...perf,
+      durationMin: r.duration_min!=null ? r.duration_min : perf.durationMin,
+      hrAvg: r.hr_avg!=null ? r.hr_avg : perf.hrAvg,
+      hrMax: r.hr_max!=null ? r.hr_max : perf.hrMax,
+      segments: extras.length ? [...perf.segments, { id: Date.now(), label:"Apple Watch", value: extras.join(" · ") }] : perf.segments,
+    });
+    setPhotoOpen(false);
+  };
+  return (
+    <div className="card">
+      <div className="card-title">{ico} {title}</div>
+      {extraHint && <p className="dim small">{extraHint}</p>}
+      {!photoOpen
+        ? <button className="btn btn-primary" style={{marginBottom:10}} onClick={()=>setPhotoOpen(true)}>📷 Foto del Apple Watch</button>
+        : <div style={{marginBottom:10}}><PhotoExtractForm apiKey={apiKey} tipo={photoTipo} onApply={applyPhoto} onClose={()=>setPhotoOpen(false)} /></div>}
+      <div className="two-col">
+        <div><label className="dim small">Duración total (min)</label><input className="input" type="number" inputMode="decimal" placeholder="—" value={perf.durationMin ?? ""} onChange={e=>setPerf({...perf, durationMin: e.target.value===""?null:parseFloat(e.target.value)})} /></div>
+        <div><label className="dim small">RPE sesión</label><input className="input" type="number" min="1" max="10" placeholder="—" value={perf.rpeSession ?? ""} onChange={e=>setPerf({...perf, rpeSession: e.target.value===""?null:parseInt(e.target.value)})} /></div>
+      </div>
+      <div className="two-col">
+        <div><label className="dim small">❤️ FC promedio</label><input className="input" type="number" placeholder="—" value={perf.hrAvg ?? ""} onChange={e=>setPerf({...perf, hrAvg: e.target.value===""?null:parseInt(e.target.value)})} /></div>
+        <div><label className="dim small">❤️ FC máxima</label><input className="input" type="number" placeholder="—" value={perf.hrMax ?? ""} onChange={e=>setPerf({...perf, hrMax: e.target.value===""?null:parseInt(e.target.value)})} /></div>
+      </div>
+      <div className="card-title" style={{marginTop:12}}>Detalle (estaciones, splits o pesos)</div>
+      {perf.segments.map(s=>(
+        <div key={s.id} className="segment-row">
+          <input className="input" placeholder="Ej. SkiErg / Km 3 / Sentadilla" value={s.label} onChange={e=>updateSegment(s.id,"label",e.target.value)} />
+          <input className="input segment-value" placeholder="1:32 / 80kg x8" value={s.value} onChange={e=>updateSegment(s.id,"value",e.target.value)} />
+          <button className="icon-btn-danger" onClick={()=>removeSegment(s.id)}>✕</button>
+        </div>
+      ))}
+      <button className="btn btn-secondary" onClick={addSegment}>➕ Agregar línea</button>
+      <label className="dim small" style={{marginTop:10,display:"block"}}>Notas</label>
+      <textarea className="input" rows="2" placeholder="Cómo te sentiste, condiciones, etc." value={perf.notes} onChange={e=>setPerf({...perf, notes: e.target.value})} />
+    </div>
+  );
+}
+
 function RendimientoTab({ sd, rec, selectedDay, updateDay, allDays, apiKey }) {
   const perf = rec.performance;
-  const setPerf = (field, val) => updateDay(selectedDay, d=>({ ...d, performance:{ ...d.performance, [field]: val } }));
-  const addSegment = () => setPerf("segments", [...perf.segments, { id: Date.now(), label:"", value:"" }]);
-  const updateSegment = (id, field, val) => setPerf("segments", perf.segments.map(s=>s.id===id?{...s,[field]:val}:s));
-  const removeSegment = (id) => setPerf("segments", perf.segments.filter(s=>s.id!==id));
-  const [watchPhotoOpen, setWatchPhotoOpen] = useState(false);
-  const applyWatchPhoto = (r) => {
-    updateDay(selectedDay, d => {
-      const extras = [
-        r.tipo?`Tipo: ${r.tipo}`:null,
-        r.distance_km!=null?`Distancia: ${r.distance_km}km`:null,
-        r.pace?`Ritmo: ${r.pace}`:null,
-        r.calories!=null?`Calorías: ${r.calories}`:null,
-      ].filter(Boolean);
-      return { ...d, performance: {
-        ...d.performance,
-        durationMin: r.duration_min!=null ? r.duration_min : d.performance.durationMin,
-        hrAvg: r.hr_avg!=null ? r.hr_avg : d.performance.hrAvg,
-        hrMax: r.hr_max!=null ? r.hr_max : d.performance.hrMax,
-        segments: extras.length ? [...d.performance.segments, { id: Date.now(), label:"Apple Watch", value: extras.join(" · ") }] : d.performance.segments,
-      }};
-    });
-    setWatchPhotoOpen(false);
-  };
+  const setHyroxPerf = (val) => updateDay(selectedDay, d=>({ ...d, performance:{ ...d.performance, hyrox: val } }));
+  const setSecondaryPerf = (val) => updateDay(selectedDay, d=>({ ...d, performance:{ ...d.performance, secondary: val } }));
+
+  const secondaryLabel = sd.pesas ? `Pesas (${ROUTINES[sd.pesasDay] ? ROUTINES[sd.pesasDay].title : ""})` : sd.correr ? `Running Z2 (${sd.correrMin} min)` : "Running / Pesas";
+  const hasSecondary = sd.pesas || sd.correr;
+
   const history = useMemo(()=>Object.entries(allDays)
-    .filter(([,d])=>d.performance && (d.performance.durationMin || (d.performance.segments||[]).length))
-    .map(([n,d])=>({n:parseInt(n), ...d.performance}))
+    .filter(([,d])=>d.performance && ((d.performance.hyrox && (d.performance.hyrox.durationMin || (d.performance.hyrox.segments||[]).length)) || (d.performance.secondary && (d.performance.secondary.durationMin || (d.performance.secondary.segments||[]).length))))
+    .map(([n,d])=>({ n:parseInt(n), hyrox:d.performance.hyrox, secondary:d.performance.secondary }))
     .sort((a,b)=>b.n-a.n), [allDays]);
 
   return (
     <div className="tab-pad">
-      <div className="card">
-        <div className="card-title">🏆 Día {selectedDay} · {fmtShort(sd.date)}</div>
-        <p className="dim small">Sube una foto del resumen de tu Apple Watch y se llenan solos los campos, o captúralos manualmente.</p>
-        {!watchPhotoOpen
-          ? <button className="btn btn-primary" style={{marginBottom:10}} onClick={()=>setWatchPhotoOpen(true)}>📷 Foto del Apple Watch</button>
-          : <div style={{marginBottom:10}}><PhotoExtractForm apiKey={apiKey} tipo="watch" onApply={applyWatchPhoto} onClose={()=>setWatchPhotoOpen(false)} /></div>}
-        <div className="two-col">
-          <div><label className="dim small">Duración total (min)</label><input className="input" type="number" inputMode="decimal" placeholder="—" value={perf.durationMin ?? ""} onChange={e=>setPerf("durationMin", e.target.value===""?null:parseFloat(e.target.value))} /></div>
-          <div><label className="dim small">RPE sesión</label><input className="input" type="number" min="1" max="10" placeholder="—" value={perf.rpeSession ?? ""} onChange={e=>setPerf("rpeSession", e.target.value===""?null:parseInt(e.target.value))} /></div>
-        </div>
-        <div className="two-col">
-          <div><label className="dim small">❤️ FC promedio</label><input className="input" type="number" placeholder="—" value={perf.hrAvg ?? ""} onChange={e=>setPerf("hrAvg", e.target.value===""?null:parseInt(e.target.value))} /></div>
-          <div><label className="dim small">❤️ FC máxima</label><input className="input" type="number" placeholder="—" value={perf.hrMax ?? ""} onChange={e=>setPerf("hrMax", e.target.value===""?null:parseInt(e.target.value))} /></div>
-        </div>
-        <div className="card-title" style={{marginTop:12}}>Detalle (estaciones, splits o pesos)</div>
-        {perf.segments.map(s=>(
-          <div key={s.id} className="segment-row">
-            <input className="input" placeholder="Ej. SkiErg / Km 3 / Sentadilla" value={s.label} onChange={e=>updateSegment(s.id,"label",e.target.value)} />
-            <input className="input segment-value" placeholder="1:32 / 80kg x8" value={s.value} onChange={e=>updateSegment(s.id,"value",e.target.value)} />
-            <button className="icon-btn-danger" onClick={()=>removeSegment(s.id)}>✕</button>
-          </div>
-        ))}
-        <button className="btn btn-secondary" onClick={addSegment}>➕ Agregar línea</button>
-        <label className="dim small" style={{marginTop:10,display:"block"}}>Notas</label>
-        <textarea className="input" rows="2" placeholder="Cómo te sentiste, condiciones, etc." value={perf.notes} onChange={e=>setPerf("notes", e.target.value)} />
-      </div>
+      <div className="day-title" style={{textAlign:"center"}}>Día {selectedDay} · {fmtShort(sd.date)}</div>
+
+      <PerformanceSection title="Hyrox" ico="🏆" apiKey={apiKey} perf={perf.hyrox} setPerf={setHyroxPerf} photoTipo="watch"
+        extraHint="Duración/FC de la clase o simulación de Hyrox. Sube el screenshot del Watch y se llena solo." />
+
+      {hasSecondary ? (
+        <PerformanceSection title={secondaryLabel} ico={sd.pesas?"🏋️":"🏃"} apiKey={apiKey} perf={perf.secondary} setPerf={setSecondaryPerf} photoTipo="watch"
+          extraHint={sd.pesas ? "Anota tus ejercicios en 'Detalle' (ej. Press banca: 60kg x8x4)." : "Distancia, ritmo y FC de tu carrera Z2."} />
+      ) : (
+        <div className="card"><p className="dim small">No hay sesión de Running/Pesas programada hoy.</p></div>
+      )}
+
       <div className="card">
         <div className="card-title">Historial</div>
         {history.length===0 && <p className="dim small">Aún no hay sesiones registradas con detalle.</p>}
         {history.map(h=>(
           <div key={h.n} className="history-row">
             <div className="mono day-title" style={{fontSize:14}}>Día {h.n}</div>
-            <div className="dim small">{h.durationMin?`${h.durationMin} min`:""}{h.hrAvg?` · FC prom ${h.hrAvg}`:""}{h.rpeSession?` · RPE ${h.rpeSession}`:""}</div>
-            {h.segments && h.segments.length>0 && <div className="dim small">{h.segments.map(s=>`${s.label}: ${s.value}`).join(" · ")}</div>}
+            {h.hyrox && (h.hyrox.durationMin || h.hyrox.hrAvg) && (
+              <div className="dim small">🏆 {h.hyrox.durationMin?`${h.hyrox.durationMin} min`:""}{h.hyrox.hrAvg?` · FC ${h.hyrox.hrAvg}`:""}{h.hyrox.rpeSession?` · RPE ${h.hyrox.rpeSession}`:""}</div>
+            )}
+            {h.secondary && (h.secondary.durationMin || h.secondary.hrAvg) && (
+              <div className="dim small">🏋️🏃 {h.secondary.durationMin?`${h.secondary.durationMin} min`:""}{h.secondary.hrAvg?` · FC ${h.secondary.hrAvg}`:""}{h.secondary.rpeSession?` · RPE ${h.secondary.rpeSession}`:""}</div>
+            )}
           </div>
         ))}
       </div>
@@ -769,7 +892,8 @@ function ProgresoTab({ allDays }) {
   const rows = useMemo(()=>SCHEDULE.map(sd=>({ sd, d: allDays[String(sd.n)] || null })), [allDays]);
   const weightSeries = rows.filter(r=>r.d && r.d.bodycheck && r.d.bodycheck.weight!=null).map(r=>({x:r.sd.n,y:r.d.bodycheck.weight}));
   const fatSeries = rows.filter(r=>r.d && r.d.bodycheck && r.d.bodycheck.bodyfat!=null).map(r=>({x:r.sd.n,y:r.d.bodycheck.bodyfat}));
-  const hrSeries = rows.filter(r=>r.d && r.d.performance && r.d.performance.hrAvg!=null).map(r=>({x:r.sd.n,y:r.d.performance.hrAvg}));
+  const hrSeries = rows.filter(r=>r.d && r.d.performance && ((r.d.performance.hyrox && r.d.performance.hyrox.hrAvg!=null) || (r.d.performance.secondary && r.d.performance.secondary.hrAvg!=null)))
+    .map(r=>({x:r.sd.n, y:(r.d.performance.hyrox && r.d.performance.hyrox.hrAvg!=null) ? r.d.performance.hyrox.hrAvg : r.d.performance.secondary.hrAvg}));
   const kcalSeries = rows.filter(r=>r.d && r.d.meals && r.d.meals.length>0).map(r=>{
     const target = getMacroTarget(r.sd);
     const actual = r.d.meals.reduce((a,m)=>a+(m.kcal||0),0);
@@ -803,15 +927,26 @@ function ChartCard({ title, children }) { return <div className="card"><div clas
 /* ============================================================
    TAB: DATOS (ajustes + respaldo)
 ============================================================ */
-function DatosTab({ data, setData, apiKey, setApiKey }) {
+function DatosTab({ data, setData, apiKey, setApiKey, setFrequentFoods }) {
   const [showKey, setShowKey] = useState(false);
   const [showExport, setShowExport] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const [importText, setImportText] = useState("");
   const [importMsg, setImportMsg] = useState("");
   const [resetArmed, setResetArmed] = useState(false);
+  const [newFood, setNewFood] = useState({ name:"", kcal:"", protein:"", carbs:"", fat:"" });
   const exportRef = useRef(null);
   const exportText = useMemo(()=>JSON.stringify(data), [data]);
+
+  const addFrequentFood = () => {
+    if (!newFood.name.trim() || newFood.kcal==="") return;
+    setFrequentFoods(list => [...list, {
+      name:newFood.name.trim(), kcal:parseFloat(newFood.kcal)||0, protein:parseFloat(newFood.protein)||0,
+      carbs:parseFloat(newFood.carbs)||0, fat:parseFloat(newFood.fat)||0, count:1,
+    }]);
+    setNewFood({ name:"", kcal:"", protein:"", carbs:"", fat:"" });
+  };
+  const removeFrequentFood = (name) => setFrequentFoods(list => list.filter(f=>f.name!==name));
 
   const doImport = () => {
     try {
@@ -830,6 +965,28 @@ function DatosTab({ data, setData, apiKey, setApiKey }) {
 
   return (
     <div className="tab-pad">
+      <div className="card">
+        <div className="card-title">🍽️ Alimentos frecuentes</div>
+        <p className="dim small">Se agregan solos cuando registras una comida (manual o con IA). También puedes cargarlos aquí directamente para no depender de la IA cada vez.</p>
+        {data.frequentFoods.length===0 && <p className="dim small">Aún no tienes ninguno guardado.</p>}
+        {data.frequentFoods.map(f=>(
+          <div key={f.name} className="meal-row">
+            <div><div className="meal-name">{f.name}</div><div className="dim small mono">{Math.round(f.kcal)} kcal · P{Math.round(f.protein)} C{Math.round(f.carbs)} G{Math.round(f.fat)}</div></div>
+            <button className="icon-btn-danger" onClick={()=>removeFrequentFood(f.name)}>✕</button>
+          </div>
+        ))}
+        <div className="inline-form">
+          <input className="input" placeholder="Nombre del alimento" value={newFood.name} onChange={e=>setNewFood({...newFood,name:e.target.value})} />
+          <div className="four-col">
+            <input className="input" type="number" inputMode="decimal" placeholder="Kcal" value={newFood.kcal} onChange={e=>setNewFood({...newFood,kcal:e.target.value})} />
+            <input className="input" type="number" inputMode="decimal" placeholder="Prot" value={newFood.protein} onChange={e=>setNewFood({...newFood,protein:e.target.value})} />
+            <input className="input" type="number" inputMode="decimal" placeholder="Carb" value={newFood.carbs} onChange={e=>setNewFood({...newFood,carbs:e.target.value})} />
+            <input className="input" type="number" inputMode="decimal" placeholder="Grasa" value={newFood.fat} onChange={e=>setNewFood({...newFood,fat:e.target.value})} />
+          </div>
+          <button className="btn btn-primary" onClick={addFrequentFood}>➕ Agregar a frecuentes</button>
+        </div>
+      </div>
+
       <div className="card">
         <div className="card-title">🔑 Tu API key de Anthropic</div>
         <p className="dim small">Necesaria solo para "Calcular con IA" y las fotos de báscula/Watch. Créala gratis en <b>console.anthropic.com</b> → API Keys. El uso tiene costo mínimo (fracciones de centavo por consulta), cargado a esa cuenta — no a tu suscripción de Claude.</p>
