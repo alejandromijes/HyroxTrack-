@@ -2,559 +2,517 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
-<meta name="theme-color" content="#14161A" />
-<title>Hyrox Acapulco Tracker</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+<meta name="apple-mobile-web-app-title" content="HyroxTrack" />
+<meta name="theme-color" content="#0E1013" />
+<title>HyroxTrack — Acapulco 6 sep</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%230E1013'/%3E%3Ctext x='50' y='68' font-size='58' text-anchor='middle' fill='%23FF4B3E' font-family='Arial' font-weight='900'%3EH%3C/text%3E%3C/svg%3E" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-:root {
-  --bg: #14161A;
-  --surface: #1C1F24;
-  --surface-2: #22262C;
-  --border: #2B2F36;
-  --text: #F2F1ED;
-  --text-dim: #9A9DA6;
-  --accent: #FF5A36;
-  --accent-dim: rgba(255,90,54,0.16);
-  --green: #4CAF7D;
-  --yellow: #E8B339;
-  --red: #E5484D;
-}
-* { box-sizing: border-box; }
-html, body { margin:0; padding:0; background:var(--bg); color:var(--text); font-family:'Inter',-apple-system,sans-serif; -webkit-tap-highlight-color: transparent; }
-#root { min-height:100vh; }
-.app-shell { display:flex; flex-direction:column; min-height:100vh; padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
-.app-header { padding:18px 16px 8px; }
-.app-title { font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:13px; letter-spacing:0.12em; color:var(--accent); }
-.app-subtitle { font-family:'JetBrains Mono',monospace; font-size:20px; margin-top:2px; }
-.backup-banner { display:block; width:calc(100% - 32px); text-align:left; margin:0 16px 10px; padding:10px 12px; background:var(--accent-dim); border:1px solid var(--accent); border-radius:10px; font-size:12px; color:var(--accent); cursor:pointer; font-family:inherit; }
-.app-main { flex:1; padding: 0 16px 24px; }
-.tab-content { display:flex; flex-direction:column; gap:14px; }
-
-.day-selector { display:flex; gap:6px; overflow-x:auto; padding:4px 2px 10px; scrollbar-width:none; }
-.day-selector::-webkit-scrollbar { display:none; }
-.day-pill { flex:0 0 auto; width:36px; height:44px; border-radius:10px; border:1px solid var(--border); background:var(--surface); color:var(--text-dim); font-family:'JetBrains Mono',monospace; font-size:12px; display:flex; flex-direction:column; align-items:center; justify-content:center; position:relative; }
-.day-pill[data-phase="1"] { border-top:3px solid #4C8EFF; }
-.day-pill[data-phase="2"] { border-top:3px solid var(--green); }
-.day-pill[data-phase="3"] { border-top:3px solid var(--yellow); }
-.day-pill[data-phase="4"] { border-top:3px solid var(--accent); }
-.day-pill.selected { background:var(--surface-2); color:var(--text); border-color:var(--accent); }
-.day-pill.is-today::after { content:''; position:absolute; bottom:3px; width:4px; height:4px; border-radius:50%; background:var(--accent); }
-.day-pill-dot { position:absolute; top:3px; right:4px; width:4px; height:4px; border-radius:50%; background:var(--green); }
-
-.day-summary-card, .section-card { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:14px; }
-.day-summary-row { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; font-size:12px; color:var(--text-dim); }
-.badge { padding:3px 8px; border-radius:100px; background:var(--surface-2); font-size:11px; }
-.kcal-numbers { display:flex; align-items:baseline; gap:4px; font-family:'JetBrains Mono',monospace; }
-.kcal-real { font-size:26px; font-weight:700; }
-.kcal-sep { color:var(--text-dim); }
-.kcal-target { color:var(--text-dim); font-size:14px; }
-.kcal-bar { height:6px; background:var(--surface-2); border-radius:100px; margin-top:8px; overflow:hidden; }
-.kcal-bar-fill { height:100%; background:var(--accent); }
-.macro-mini { margin-top:6px; font-size:12px; color:var(--text-dim); }
-
-.checklist { display:flex; flex-direction:column; gap:8px; }
-.checklist-row { display:flex; align-items:center; justify-content:space-between; background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:10px 12px; }
-.checklist-row.scheduled { border-color: rgba(255,90,54,0.35); }
-.checklist-label { display:flex; align-items:center; gap:8px; font-size:14px; }
-.checklist-label input { width:18px; height:18px; }
-.scheduled-tag { font-size:10px; color:var(--accent); border:1px solid var(--accent); border-radius:100px; padding:1px 6px; }
-.rpe-select { background:var(--surface-2); color:var(--text); border:1px solid var(--border); border-radius:8px; padding:4px 6px; font-size:12px; }
-
-.link-btn { background:none; border:none; color:var(--text-dim); font-size:13px; text-align:left; padding:0; cursor:pointer; }
-.routine-detail { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:12px; font-size:13px; }
-.routine-block + .routine-block { margin-top:10px; }
-.routine-title { font-weight:600; margin-bottom:4px; color:var(--accent); }
-.routine-detail ul { margin:0; padding-left:18px; color:var(--text-dim); }
-.routine-detail li { margin-bottom:3px; }
-.routine-note { color:var(--text-dim); margin:0; }
-
-.section-header { display:flex; justify-content:space-between; align-items:center; font-weight:600; margin-bottom:10px; }
-.section-total { font-family:'JetBrains Mono',monospace; color:var(--text-dim); font-size:13px; font-weight:400; }
-
-.meal-list, .perf-list, .food-manage-list { list-style:none; padding:0; margin:0 0 10px; display:flex; flex-direction:column; gap:8px; }
-.meal-item, .food-manage-list li { display:flex; justify-content:space-between; align-items:center; background:var(--surface-2); border-radius:10px; padding:8px 10px; }
-.meal-name { font-size:13px; }
-.meal-macros { font-size:11px; color:var(--text-dim); font-family:'JetBrains Mono',monospace; }
-.icon-btn { background:none; border:none; color:var(--text-dim); font-size:14px; cursor:pointer; padding:4px; }
-
-.chip-row { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px; }
-.chip { background:var(--surface-2); border:1px solid var(--border); color:var(--text); border-radius:100px; padding:6px 10px; font-size:12px; cursor:pointer; }
-
-.action-row { display:flex; flex-wrap:wrap; gap:8px; margin-top:4px; }
-.btn-primary { background:var(--accent); color:#fff; border:none; border-radius:10px; padding:10px 14px; font-size:13px; font-weight:600; cursor:pointer; }
-.btn-ghost { background:var(--surface-2); color:var(--text); border:1px solid var(--border); border-radius:10px; padding:9px 13px; font-size:13px; cursor:pointer; }
-.btn-danger { background:var(--red); color:#fff; border:none; border-radius:10px; padding:10px 14px; font-size:13px; font-weight:600; cursor:pointer; }
-
-.manual-form, .ai-text-form, .perf-form, .plan-form, .weight-form { display:flex; flex-direction:column; gap:8px; margin-top:10px; }
-.manual-form input, .ai-text-form textarea, .perf-form input, .perf-form textarea, .plan-form input, .weight-form input {
-  background:var(--surface-2); border:1px solid var(--border); color:var(--text); border-radius:10px; padding:9px 10px; font-size:13px; width:100%;
-}
-.manual-grid { display:grid; grid-template-columns: repeat(4, 1fr); gap:6px; }
-.plan-form label { display:flex; flex-direction:column; gap:4px; font-size:12px; color:var(--text-dim); }
-
-.pending-card { background:var(--surface-2); border:1px dashed var(--accent); border-radius:12px; padding:10px; margin-top:8px; }
-.pending-title { font-size:12px; color:var(--accent); margin-bottom:6px; }
-.pending-grid { display:grid; grid-template-columns: 1fr 1fr; gap:6px; }
-.pending-grid input { background:var(--surface); border:1px solid var(--border); color:var(--text); border-radius:8px; padding:6px 8px; font-size:12px; }
-.pending-actions { display:flex; gap:8px; margin-top:8px; }
-
-.error-text { color:var(--red); font-size:12px; margin:6px 0; }
-.loading-text { color:var(--text-dim); font-size:12px; margin:6px 0; }
-.hint-text { color:var(--text-dim); font-size:12px; margin:4px 0 8px; }
-
-.perf-item { background:var(--surface-2); border-radius:10px; padding:10px; }
-.perf-item-header { display:flex; justify-content:space-between; font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--text-dim); }
-.perf-item-stats { font-size:13px; margin-top:4px; }
-.perf-item-notes { font-size:12px; color:var(--text-dim); margin-top:4px; }
-
-.stats-grid { display:grid; grid-template-columns: repeat(4,1fr); gap:8px; }
-.stat-box { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:10px 6px; text-align:center; }
-.stat-value { font-family:'JetBrains Mono',monospace; font-size:18px; font-weight:700; color:var(--accent); }
-.stat-label { font-size:10px; color:var(--text-dim); margin-top:2px; }
-
-.chart-card { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:12px; }
-.chart-title { font-size:13px; font-weight:600; margin-bottom:6px; display:flex; justify-content:space-between; align-items:center; }
-.chart-legend { display:flex; gap:8px; font-size:10px; font-weight:400; }
-.chart-svg { width:100%; height:auto; display:block; }
-.chart-empty { color:var(--text-dim); font-size:12px; padding:20px 0; text-align:center; }
-.chart-labels { display:flex; justify-content:space-between; font-size:10px; color:var(--text-dim); margin-top:2px; }
-
-.key-input { flex:1; background:var(--surface-2); border:1px solid var(--border); color:var(--text); border-radius:10px; padding:9px 10px; font-size:13px; min-width:0; }
-.backup-textarea { width:100%; min-height:90px; background:var(--surface-2); border:1px solid var(--border); color:var(--text); border-radius:10px; padding:8px; font-size:11px; font-family:'JetBrains Mono',monospace; margin-bottom:8px; }
-.divider { height:1px; background:var(--border); margin:14px 0; }
-.diag-pre { max-height:240px; overflow:auto; background:var(--surface-2); border-radius:10px; padding:8px; font-size:10px; color:var(--text-dim); white-space:pre-wrap; word-break:break-word; }
-.danger-card { border-color: rgba(229,72,77,0.4); }
-
-.bottom-nav { position:fixed; bottom:0; left:0; right:0; display:flex; background:var(--surface); border-top:1px solid var(--border); padding: 6px 4px calc(6px + env(safe-area-inset-bottom)); }
-.nav-btn { flex:1; background:none; border:none; color:var(--text-dim); display:flex; flex-direction:column; align-items:center; gap:2px; padding:6px 0; cursor:pointer; font-family:inherit; }
-.nav-btn.active { color:var(--accent); }
-.nav-icon { font-size:18px; }
-.nav-label { font-size:10px; }
-
-@media (min-width: 640px) {
-  .app-shell { max-width:480px; margin:0 auto; box-shadow: 0 0 60px rgba(0,0,0,0.4); }
-  .bottom-nav { max-width:480px; left:50%; transform:translateX(-50%); }
-}
+  :root{
+    --bg:#0E1013;
+    --bg2:#15181D;
+    --card:#1B1F26;
+    --card-border:#262B33;
+    --line:#2A2F38;
+    --text:#F2F3F5;
+    --text-dim:#9AA1AC;
+    --text-faint:#5C636E;
+    --coral:#FF4B3E;
+    --coral-dim:#7A2A24;
+    --teal:#2DD4BF;
+    --amber:#F2B134;
+    --blue:#4C8EFF;
+    --green:#4CAF7D;
+    --danger:#FF4B3E;
+    --radius:16px;
+    --radius-sm:10px;
+    --font-display:'Barlow Condensed',system-ui,-apple-system,sans-serif;
+    --font-body:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);}
+  body{
+    font-family:var(--font-body);
+    font-size:15px;
+    line-height:1.45;
+    padding-bottom:calc(78px + env(safe-area-inset-bottom));
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+  }
+  #root{min-height:100vh;}
+  h1,h2,h3,h4{font-family:var(--font-display);font-weight:700;margin:0;letter-spacing:0.2px;}
+  .app-shell{max-width:560px;margin:0 auto;padding:14px 14px 4px;}
+  /* ---------- Header ---------- */
+  .topbar{display:flex;align-items:baseline;justify-content:space-between;padding:6px 2px 14px;}
+  .topbar .brand{font-family:var(--font-display);font-size:26px;font-weight:800;letter-spacing:0.5px;}
+  .topbar .brand span{color:var(--coral);}
+  .topbar .countdown{font-size:12px;color:var(--text-dim);text-align:right;line-height:1.3;}
+  .topbar .countdown b{color:var(--teal);font-size:15px;display:block;font-family:var(--font-display);}
+  /* ---------- Banner ---------- */
+  .banner{background:linear-gradient(90deg,#3A2A16,#2A1F14);border:1px solid #5C431E;color:#F2C879;border-radius:var(--radius-sm);padding:10px 12px;font-size:13px;margin-bottom:12px;display:flex;gap:8px;align-items:center;}
+  .banner.err{background:linear-gradient(90deg,#3A1616,#2A1414);border-color:#5C1E1E;color:#F29A9A;}
+  .banner button{margin-left:auto;background:rgba(255,255,255,0.08);border:none;color:inherit;border-radius:8px;padding:6px 10px;font-size:12px;font-weight:600;white-space:nowrap;}
+  /* ---------- Cards ---------- */
+  .card{background:var(--card);border:1px solid var(--card-border);border-radius:var(--radius);padding:14px;margin-bottom:12px;}
+  .card-title{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+  .card-title h3{font-size:19px;}
+  .card-sub{color:var(--text-dim);font-size:12.5px;margin-top:-6px;margin-bottom:10px;}
+  .pill{display:inline-flex;align-items:center;gap:4px;background:var(--bg2);border:1px solid var(--line);border-radius:999px;padding:3px 10px;font-size:11.5px;color:var(--text-dim);font-weight:600;}
+  .pill.on{background:rgba(76,175,125,0.15);border-color:rgba(76,175,125,0.4);color:var(--green);}
+  .pill.phase{background:rgba(255,75,62,0.12);border-color:rgba(255,75,62,0.35);color:#FF8177;}
+  /* ---------- Day selector ---------- */
+  .day-scroll{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 10px;margin-bottom:4px;scrollbar-width:none;}
+  .day-scroll::-webkit-scrollbar{display:none;}
+  .day-chip{flex:0 0 auto;width:52px;height:64px;border-radius:14px;border:1px solid var(--line);background:var(--card);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-family:var(--font-display);color:var(--text-dim);cursor:pointer;position:relative;}
+  .day-chip .dnum{font-size:20px;font-weight:800;color:var(--text);}
+  .day-chip .dlabel{font-size:10px;text-transform:uppercase;letter-spacing:0.5px;}
+  .day-chip.today{border-color:var(--teal);}
+  .day-chip.selected{background:var(--coral);border-color:var(--coral);}
+  .day-chip.selected .dnum,.day-chip.selected .dlabel{color:#fff;}
+  .day-chip .dot{position:absolute;bottom:5px;width:5px;height:5px;border-radius:50%;background:var(--green);}
+  /* ---------- Checklist ---------- */
+  .check-row{display:flex;align-items:center;gap:10px;padding:10px 4px;border-bottom:1px solid var(--line);}
+  .check-row:last-child{border-bottom:none;}
+  .check-box{width:26px;height:26px;border-radius:8px;border:2px solid var(--line);flex:0 0 auto;display:flex;align-items:center;justify-content:center;font-size:15px;color:transparent;font-weight:800;}
+  .check-box.checked{background:var(--green);border-color:var(--green);color:#08130D;}
+  .check-label{flex:1;font-weight:600;font-size:14.5px;}
+  .check-meta{font-size:11.5px;color:var(--text-dim);font-weight:500;}
+  .rpe-select{display:flex;gap:4px;}
+  .rpe-dot{width:22px;height:22px;border-radius:6px;background:var(--bg2);border:1px solid var(--line);font-size:10.5px;display:flex;align-items:center;justify-content:center;color:var(--text-dim);font-weight:700;}
+  .rpe-dot.active{background:var(--amber);border-color:var(--amber);color:#1a1300;}
+  .expand-toggle{background:none;border:none;color:var(--teal);font-size:12.5px;font-weight:600;padding:4px 2px 8px;display:block;}
+  .routine-box{background:var(--bg2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:2px 0 10px;font-size:13px;color:var(--text-dim);}
+  .routine-box b{color:var(--text);}
+  .routine-ex{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px dashed var(--line);}
+  .routine-ex:last-child{border-bottom:none;}
+  /* ---------- Macro bars ---------- */
+  .macro-bar-wrap{margin-bottom:8px;}
+  .macro-bar-label{display:flex;justify-content:space-between;font-size:11.5px;color:var(--text-dim);margin-bottom:3px;font-weight:600;}
+  .macro-bar-track{height:9px;border-radius:5px;background:var(--bg2);overflow:hidden;border:1px solid var(--line);}
+  .macro-bar-fill{height:100%;border-radius:5px;transition:width 0.3s ease;}
+  .kcal-summary{display:flex;align-items:baseline;gap:6px;margin-bottom:12px;}
+  .kcal-summary .big{font-family:var(--font-display);font-size:34px;font-weight:800;}
+  .kcal-summary .of{color:var(--text-dim);font-size:14px;}
+  /* ---------- Food list / chips ---------- */
+  .chip-row{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:10px;}
+  .food-chip{background:var(--bg2);border:1px solid var(--line);border-radius:999px;padding:7px 12px;font-size:12.5px;font-weight:600;color:var(--text);}
+  .food-item{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--line);font-size:13.5px;}
+  .food-item:last-child{border-bottom:none;}
+  .food-item .fi-name{font-weight:600;}
+  .food-item .fi-macro{color:var(--text-dim);font-size:11.5px;}
+  .food-item .fi-del{background:none;border:none;color:var(--text-faint);font-size:18px;padding:0 4px;}
+  /* ---------- Buttons / inputs ---------- */
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border-radius:12px;border:1px solid var(--line);background:var(--bg2);color:var(--text);font-weight:600;font-size:13.5px;padding:11px 14px;cursor:pointer;width:100%;}
+  .btn-primary{background:var(--coral);border-color:var(--coral);color:#fff;}
+  .btn-secondary{background:rgba(45,212,191,0.12);border-color:rgba(45,212,191,0.4);color:var(--teal);}
+  .btn-danger{background:rgba(255,75,62,0.12);border-color:rgba(255,75,62,0.4);color:#FF8177;}
+  .btn-ghost{background:transparent;}
+  .btn-row{display:flex;gap:8px;}
+  .btn-row .btn{flex:1;}
+  .btn:active{transform:scale(0.98);}
+  .btn[disabled]{opacity:0.5;}
+  input[type=text],input[type=number],input[type=password],textarea,select{
+    width:100%;background:var(--bg2);border:1px solid var(--line);border-radius:10px;color:var(--text);
+    padding:10px 12px;font-size:14px;font-family:var(--font-body);
+  }
+  textarea{resize:vertical;min-height:60px;}
+  label.field-label{display:block;font-size:11.5px;color:var(--text-dim);font-weight:600;margin:8px 0 4px;text-transform:uppercase;letter-spacing:0.4px;}
+  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
+  .grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;}
+  .file-btn{position:relative;overflow:hidden;}
+  .file-btn input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;}
+  /* ---------- Tabs ---------- */
+  .tabbar{position:fixed;bottom:0;left:0;right:0;background:rgba(21,24,29,0.92);backdrop-filter:blur(14px);border-top:1px solid var(--line);display:flex;padding:6px 6px calc(6px + env(safe-area-inset-bottom));z-index:50;}
+  .tab-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;background:none;border:none;color:var(--text-faint);font-size:10.5px;font-weight:700;padding:6px 2px;border-radius:10px;}
+  .tab-btn .ic{font-size:19px;}
+  .tab-btn.active{color:var(--coral);}
+  /* ---------- Stats ---------- */
+  .stat-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:4px;}
+  .stat-box{background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:12px 8px;text-align:center;}
+  .stat-box .sv{font-family:var(--font-display);font-size:26px;font-weight:800;color:var(--teal);}
+  .stat-box .sl{font-size:10.5px;color:var(--text-dim);font-weight:600;margin-top:2px;}
+  /* ---------- Section headers ---------- */
+  .section-eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--text-faint);font-weight:700;margin:18px 2px 8px;}
+  .section-eyebrow:first-child{margin-top:0;}
+  /* ---------- Misc ---------- */
+  .row-between{display:flex;align-items:center;justify-content:space-between;}
+  .muted{color:var(--text-dim);}
+  .small{font-size:12px;}
+  .divider{height:1px;background:var(--line);margin:12px 0;}
+  .empty-state{text-align:center;padding:26px 10px;color:var(--text-dim);font-size:13px;}
+  .empty-state .ic{font-size:30px;display:block;margin-bottom:8px;}
+  .err-fallback{padding:40px 20px;text-align:center;}
+  .err-fallback h2{color:var(--coral);margin-bottom:10px;}
+  .loading-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--teal);animation:pulse 1s infinite ease-in-out;}
+  @keyframes pulse{0%,100%{opacity:0.3;}50%{opacity:1;}}
+  .history-item{padding:10px 0;border-bottom:1px solid var(--line);}
+  .history-item:last-child{border-bottom:none;}
+  .history-item .hi-top{display:flex;justify-content:space-between;font-size:13px;font-weight:700;}
+  .history-item .hi-meta{font-size:11.5px;color:var(--text-dim);margin-top:2px;}
+  .seg-row{display:flex;gap:6px;margin-bottom:6px;}
+  .seg-row input{flex:1;}
+  .link-btn{background:none;border:none;color:var(--teal);font-size:12.5px;font-weight:600;padding:4px 0;}
 </style>
 </head>
 <body>
-<div id="root"><div style="padding:40px 20px;color:#9A9DA6;font-family:sans-serif;font-size:14px;">Cargando…</div></div>
+<div id="root"></div>
 
-<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-<script src="https://unpkg.com/@babel/standalone@7/babel.min.js"></script>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone@7/babel.min.js" crossorigin></script>
 
 <script type="text/plain" id="app-source">
-const { useState, useEffect, useMemo, useRef } = React;
+/* HyroxTrack — app.jsx
+   Reconstruido completo: Babel runtime classic explícito, Error Boundaries por pestaña,
+   lectura de localStorage a prueba de datos legacy/corruptos. */
 
-// ============================================================
-// CONFIG / STORAGE KEYS
-// ============================================================
-const STORAGE_KEYS = {
-  apiKey: 'hyrox_apiKey',
-  days: 'hyrox_days_v2',
-  performance: 'hyrox_performance_v2',
-  foods: 'hyrox_foods_v2',
-  plan: 'hyrox_plan_v2',
-  lastBackup: 'hyrox_lastBackup_v2',
-};
+const { useState, useEffect, useMemo, useRef, useCallback } = React;
 
-const DEFAULT_PLAN = {
-  startDate: '2026-07-28',
-  totalDays: 41,
-  phase1End: 28,
-  phase2End: 37,
-  phase3End: 40,
-  kcal: { phase1: 2200, phase2: 2490, phase3: 3000, phase4: 2800 },
-};
+/* =========================================================
+   CONSTANTES / CONFIG
+   ========================================================= */
+const START_DATE = "2026-07-28";
+const TOTAL_DAYS = 41;
+const STORAGE_KEY = "hyroxtrack_data_v2";
+const APP_VERSION = 2;
+const CLAUDE_MODEL = "claude-sonnet-5";
+const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
 
-const DEFAULT_FOODS = [
-  { id: 'f1', name: 'Pechuga de pollo (150g)', kcal: 248, protein: 46, carbs: 0, fat: 5 },
-  { id: 'f2', name: 'Claras de huevo (200ml)', kcal: 104, protein: 22, carbs: 1, fat: 0 },
-  { id: 'f3', name: 'Arroz cocido (1 taza)', kcal: 205, protein: 4, carbs: 45, fat: 0 },
-  { id: 'f4', name: 'Avena (1/2 taza seca)', kcal: 150, protein: 5, carbs: 27, fat: 3 },
-  { id: 'f5', name: 'Proteína whey (1 scoop)', kcal: 120, protein: 24, carbs: 3, fat: 1 },
-  { id: 'f6', name: 'Tortilla de maíz (1 pza)', kcal: 52, protein: 1, carbs: 11, fat: 1 },
-];
+const COLOR = { coral: "#FF4B3E", teal: "#2DD4BF", amber: "#F2B134", blue: "#4C8EFF", green: "#4CAF7D", faint: "#5C636E" };
 
-const PHASE_LABEL = { 1: 'Déficit', 2: 'Mantenimiento', 3: 'Carga de carbos', 4: 'Día de carrera' };
+const WEEKDAY_NAMES = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+const WEEKDAY_NAMES_FULL = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+const MONTHS = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
 
-const ROUTINES = {
-  A: {
-    title: 'Día A — Empuje + Core',
-    exercises: [
-      'Press banca — 4 series x 8-10 reps',
-      'Press militar — 3 series x 8-10 reps',
-      'Fondos en paralelas o press inclinado — 3 series x 10-12 reps',
-      'Elevaciones laterales — 3 series x 12-15 reps',
-      'Extensión de tríceps en polea — 3 series x 12-15 reps',
-      'Plancha — 3 series x 40-60 seg',
-    ],
-  },
-  B: {
-    title: 'Día B — Tracción + Piernas ligero',
-    exercises: [
-      'Peso muerto rumano — 4 series x 8-10 reps',
-      'Remo con barra o mancuerna — 4 series x 8-10 reps',
-      'Dominadas o jalón al pecho — 3 series x 8-10 reps',
-      'Curl de bíceps — 3 series x 12-15 reps',
-      'Face pull — 3 series x 15 reps',
-      'Zancadas o goblet squat — 3 series x 12 reps por pierna',
-    ],
-  },
-  FULL: {
-    title: 'Full body — Mantenimiento',
-    exercises: [
-      'Press banca — 3 series x 8-10 reps',
-      'Peso muerto rumano — 3 series x 8-10 reps',
-      'Remo con barra o mancuerna — 3 series x 10 reps',
-      'Press militar — 2 series x 10 reps',
-      'Plancha — 2 series x 45 seg',
-    ],
-  },
-};
+function clip(n, lo, hi) { return Math.min(Math.max(n, lo), hi); }
 
-const Z2_PROTOCOL = [
-  'Calentamiento: 5 min caminata rápida o trote muy suave',
-  'Ritmo conversacional: FC ~65-75% de tu FC máx, debes poder hablar en frases completas',
-  'Enfriamiento: 3-5 min caminata + estiramiento ligero',
-];
-
-// ============================================================
-// DATE / PLAN HELPERS
-// ============================================================
-function parseISO(dateStr) {
-  const parts = String(dateStr || '2026-07-28').split('-').map(Number);
-  return new Date(parts[0], parts[1] - 1, parts[2]);
-}
-function toISO(date) {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  return y + '-' + m + '-' + d;
-}
-function addDays(date, n) {
-  const d = new Date(date);
-  d.setDate(d.getDate() + n);
+function dateForDay(dayNum) {
+  const d = new Date(START_DATE + "T00:00:00");
+  d.setDate(d.getDate() + (dayNum - 1));
   return d;
 }
-function dayNumberToDate(plan, dayNum) {
-  return addDays(parseISO(plan.startDate), dayNum - 1);
-}
-function dayNumberToISO(plan, dayNum) {
-  return toISO(dayNumberToDate(plan, dayNum));
-}
-function todayDayNumber(plan) {
-  const start = parseISO(plan.startDate);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  start.setHours(0, 0, 0, 0);
-  const diff = Math.round((today - start) / 86400000) + 1;
-  return Math.min(Math.max(diff, 1), plan.totalDays);
-}
-function getPhase(plan, dayNum) {
-  if (dayNum <= plan.phase1End) return 1;
-  if (dayNum <= plan.phase2End) return 2;
-  if (dayNum <= plan.phase3End) return 3;
-  return 4;
-}
-function getKcalTarget(plan, dayNum) {
-  const phase = getPhase(plan, dayNum);
-  const val = plan.kcal && plan.kcal['phase' + phase];
-  return typeof val === 'number' ? val : 2200;
-}
-function weekdayName(date) {
-  return ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'][date.getDay()];
-}
-function nowTime() {
-  const d = new Date();
-  return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+function fmtDateShort(d) { return d.getDate() + " " + MONTHS[d.getMonth()]; }
+function todayDayNumber() {
+  const start = new Date(START_DATE + "T00:00:00");
+  const now = new Date();
+  const startMid = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+  const nowMid = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  return Math.round((nowMid - startMid) / 86400000) + 1;
 }
 
-function computeZ2Progression(plan, dayNum) {
+/* =========================================================
+   PLAN / FASES
+   ========================================================= */
+const DEFAULT_PHASES = [
+  { id: 1, name: "Déficit", startDay: 1, endDay: 28, kcal: 2200, protein: 180, carbs: 180, fat: 84 },
+  { id: 2, name: "Mantenimiento", startDay: 29, endDay: 36, kcal: 2490, protein: 180, carbs: 230, fat: 95 },
+  { id: 3, name: "Carga de carbos", startDay: 37, endDay: 40, kcal: 3000, protein: 170, carbs: 380, fat: 89 },
+  { id: 4, name: "Día de carrera", startDay: 41, endDay: 41, kcal: 3100, protein: 160, carbs: 400, fat: 85 },
+];
+
+function getPhase(phases, dayNum) {
+  const list = phases && phases.length ? phases : DEFAULT_PHASES;
+  for (const p of list) { if (dayNum >= p.startDay && dayNum <= p.endDay) return p; }
+  return list[list.length - 1];
+}
+
+function weekdayOf(dayNum) { return dateForDay(dayNum).getDay(); }
+
+function scheduleForDay(dayNum, phases) {
+  const phase = getPhase(phases, dayNum);
+  const wd = weekdayOf(dayNum);
+  const sched = { hyrox: false, pesas: null, correr: null };
+  if (phase.id === 4) {
+    sched.hyrox = true; // día de carrera: siempre, sin importar el día de la semana
+  } else if (wd !== 6) {
+    sched.hyrox = true; // todos los días excepto sábado
+  }
+  if (phase.id === 1) {
+    if (wd === 1) sched.pesas = "A";
+    if (wd === 3) sched.pesas = "B";
+    if (wd === 2 || wd === 4) sched.correr = runDurationPhase1(dayNum, phases);
+  } else if (phase.id === 2) {
+    if (wd === 1) sched.pesas = "FULL";
+    if (wd === 2 || wd === 4) sched.correr = 11;
+  }
+  return sched;
+}
+
+function runDurationPhase1(dayNum, phases) {
+  const list = phases && phases.length ? phases : DEFAULT_PHASES;
+  const phase1 = list.find((p) => p.id === 1) || DEFAULT_PHASES[0];
   const sessions = [];
-  for (let d = 1; d <= plan.phase1End; d++) {
-    const dow = dayNumberToDate(plan, d).getDay();
-    if (dow === 2 || dow === 4) sessions.push(d);
+  for (let d = phase1.startDay; d <= phase1.endDay; d++) {
+    const wd = weekdayOf(d);
+    if (wd === 2 || wd === 4) sessions.push(d);
   }
   const idx = sessions.indexOf(dayNum);
-  if (idx === -1 || sessions.length <= 1) return 12;
-  const start = 12, end = 22;
-  return start + Math.round((end - start) * (idx / (sessions.length - 1)));
+  if (idx === -1) return 12;
+  const n = sessions.length;
+  if (n <= 1) return 12;
+  return Math.round(12 + (22 - 12) * (idx / (n - 1)));
 }
 
-function getSchedule(plan, dayNum) {
-  const schedule = { hyrox: false, pesas: false, correr: false, pesasType: null, correrMin: null };
-  const date = dayNumberToDate(plan, dayNum);
-  const dow = date.getDay();
-  const phase = getPhase(plan, dayNum);
-
-  if (phase === 4) {
-    schedule.hyrox = true;
-    return schedule;
-  }
-  if (dow !== 6) schedule.hyrox = true;
-
-  if (phase === 1) {
-    if (dow === 1) { schedule.pesas = true; schedule.pesasType = 'A'; }
-    if (dow === 3) { schedule.pesas = true; schedule.pesasType = 'B'; }
-    if (dow === 2 || dow === 4) { schedule.correr = true; schedule.correrMin = computeZ2Progression(plan, dayNum); }
-  } else if (phase === 2) {
-    if (dow === 1) { schedule.pesas = true; schedule.pesasType = 'FULL'; }
-    if (dow === 2 || dow === 4) { schedule.correr = true; schedule.correrMin = 11; }
-  }
-  return schedule;
+/* =========================================================
+   RUTINAS
+   ========================================================= */
+const ROUTINE_A = {
+  title: "Día A — Empuje + Core",
+  exercises: [
+    { name: "Press banca", sets: "4x8-10" },
+    { name: "Press militar", sets: "3x8-10" },
+    { name: "Fondos / press inclinado", sets: "3x10-12" },
+    { name: "Elevaciones laterales", sets: "3x12-15" },
+    { name: "Extensión de tríceps", sets: "3x12-15" },
+    { name: "Plancha", sets: "3x40-60s" },
+  ],
+};
+const ROUTINE_B = {
+  title: "Día B — Tracción + Piernas ligero",
+  exercises: [
+    { name: "Peso muerto rumano", sets: "4x8-10" },
+    { name: "Remo (barra/mancuerna)", sets: "3x10-12" },
+    { name: "Dominadas / jalón", sets: "3x8-10" },
+    { name: "Curl de bíceps", sets: "3x12-15" },
+    { name: "Face pull", sets: "3x15" },
+    { name: "Zancadas / goblet squat", sets: "3x12/pierna" },
+  ],
+};
+const ROUTINE_FULL = {
+  title: "Full body — Mantenimiento",
+  exercises: [
+    { name: "Press banca", sets: "3x8-10" },
+    { name: "Remo (barra/mancuerna)", sets: "3x10-12" },
+    { name: "Zancadas / goblet squat", sets: "3x12/pierna" },
+    { name: "Plancha", sets: "3x40-60s" },
+  ],
+};
+function runProtocolText(min) {
+  return "Calentamiento: 5 min caminata + trote suave. Ritmo: " + min + " min en Zona 2, ritmo conversacional (debes poder hablar en frases completas). Enfriamiento: 5 min caminata.";
 }
 
-// ============================================================
-// STORAGE (with defensive migration to prevent black-screen crashes)
-// ============================================================
-function safeParse(json, fallback) {
-  try {
-    const v = JSON.parse(json);
-    return v === null || v === undefined ? fallback : v;
-  } catch (e) {
-    return fallback;
-  }
+/* =========================================================
+   ALMACENAMIENTO — lectura a prueba de datos legacy/corruptos
+   ========================================================= */
+function emptyDay() {
+  return { hyroxDone: false, hyroxRpe: null, pesasDone: false, pesasRpe: null, correrDone: false, correrRpe: null, weight: null, meals: [] };
 }
-function safeGet(key) {
-  try { return localStorage.getItem(key); } catch (e) { return null; }
-}
-function save(key, value) {
-  try {
-    localStorage.setItem(key, JSON.stringify(value));
-    return true;
-  } catch (e) {
-    console.error('Error guardando', key, e);
-    return false;
-  }
-}
-function loadDays() {
-  let data = safeParse(safeGet(STORAGE_KEYS.days), {});
-  if (!data || typeof data !== 'object' || Array.isArray(data)) data = {};
-  return data;
-}
-function loadPerformance() {
-  let data = safeParse(safeGet(STORAGE_KEYS.performance), null);
-  if (!data || typeof data !== 'object' || Array.isArray(data)) {
-    data = { hyrox: Array.isArray(data) ? data : [], secondary: [] };
-  }
-  if (!Array.isArray(data.hyrox)) data.hyrox = [];
-  if (!Array.isArray(data.secondary)) data.secondary = [];
-  return data;
-}
-function loadFoods() {
-  let data = safeParse(safeGet(STORAGE_KEYS.foods), null);
-  if (!Array.isArray(data) || data.length === 0) data = DEFAULT_FOODS;
-  return data;
-}
-function loadPlan() {
-  let data = safeParse(safeGet(STORAGE_KEYS.plan), null);
-  if (!data || typeof data !== 'object') data = {};
-  const merged = { ...DEFAULT_PLAN, ...data, kcal: { ...DEFAULT_PLAN.kcal, ...(data.kcal || {}) } };
-  return merged;
-}
-function getDayDataFor(days, plan, dayNum) {
-  const iso = dayNumberToISO(plan, dayNum);
-  const entry = (days && days[iso]) || {};
+function emptyData() {
   return {
-    meals: Array.isArray(entry.meals) ? entry.meals : [],
-    checks: entry.checks && typeof entry.checks === 'object' ? entry.checks : {},
-    rpe: entry.rpe && typeof entry.rpe === 'object' ? entry.rpe : {},
-    weight: entry.weight && typeof entry.weight === 'object' ? entry.weight : null,
+    version: APP_VERSION,
+    apiKey: "",
+    days: {},
+    performance: { hyrox: [], secondary: [] },
+    frequentFoods: [
+      { id: "ff1", name: "Pechuga de pollo 150g", kcal: 248, protein: 46, carbs: 0, fat: 5 },
+      { id: "ff2", name: "Claras de huevo (4)", kcal: 68, protein: 14, carbs: 1, fat: 0 },
+      { id: "ff3", name: "Arroz cocido 1 taza", kcal: 205, protein: 4, carbs: 45, fat: 0 },
+      { id: "ff4", name: "Whey scoop", kcal: 120, protein: 24, carbs: 3, fat: 1 },
+    ],
+    plan: { phases: DEFAULT_PHASES.map((p) => ({ ...p })) },
+    lastExportAt: null,
   };
 }
 
-// ============================================================
-// AI HELPERS (direct calls to the public Anthropic API)
-// ============================================================
-async function callClaude(apiKey, content, opts) {
-  opts = opts || {};
-  if (!apiKey) throw new Error('Falta tu API key (pestaña Datos)');
-  const body = {
-    model: 'claude-sonnet-5',
-    max_tokens: opts.maxTokens || 400,
-    messages: [{ role: 'user', content }],
-  };
-  if (opts.system) body.system = opts.system;
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'content-type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-direct-browser-access': 'true',
-    },
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) {
-    let errText = '';
-    try { errText = await res.text(); } catch (e) {}
-    throw new Error('API ' + res.status + ': ' + errText.slice(0, 180));
+function sanitizeDay(raw) {
+  const d = emptyDay();
+  if (!raw || typeof raw !== "object") return d;
+  d.hyroxDone = !!raw.hyroxDone;
+  d.hyroxRpe = Number.isFinite(raw.hyroxRpe) ? raw.hyroxRpe : null;
+  d.pesasDone = !!raw.pesasDone;
+  d.pesasRpe = Number.isFinite(raw.pesasRpe) ? raw.pesasRpe : null;
+  d.correrDone = !!raw.correrDone;
+  d.correrRpe = Number.isFinite(raw.correrRpe) ? raw.correrRpe : null;
+  if (raw.weight && typeof raw.weight === "object" && Number.isFinite(raw.weight.kg)) {
+    d.weight = {
+      kg: raw.weight.kg,
+      bodyFatPct: Number.isFinite(raw.weight.bodyFatPct) ? raw.weight.bodyFatPct : null,
+      musclePct: Number.isFinite(raw.weight.musclePct) ? raw.weight.musclePct : null,
+      visceral: Number.isFinite(raw.weight.visceral) ? raw.weight.visceral : null,
+      waterPct: Number.isFinite(raw.weight.waterPct) ? raw.weight.waterPct : null,
+      time: typeof raw.weight.time === "string" ? raw.weight.time : "",
+    };
   }
-  const data = await res.json();
-  const blocks = Array.isArray(data.content) ? data.content : [];
-  const textBlock = blocks.find(b => b && b.type === 'text');
-  if (!textBlock) throw new Error('La IA no devolvió texto');
+  if (Array.isArray(raw.meals)) {
+    d.meals = raw.meals
+      .filter((m) => m && typeof m === "object" && Number.isFinite(m.kcal))
+      .map((m) => ({
+        id: m.id || "m" + Math.random().toString(36).slice(2),
+        name: typeof m.name === "string" ? m.name : "Comida",
+        kcal: m.kcal,
+        protein: Number.isFinite(m.protein) ? m.protein : 0,
+        carbs: Number.isFinite(m.carbs) ? m.carbs : 0,
+        fat: Number.isFinite(m.fat) ? m.fat : 0,
+        time: typeof m.time === "string" ? m.time : "",
+        source: typeof m.source === "string" ? m.source : "manual",
+      }));
+  }
+  return d;
+}
+
+function sanitizePerfEntry(raw, kind) {
+  if (!raw || typeof raw !== "object") return null;
+  if (!Number.isFinite(raw.durationMin) && !Number.isFinite(raw.dayNumber)) return null;
+  return {
+    id: raw.id || "p" + Math.random().toString(36).slice(2),
+    date: typeof raw.date === "string" ? raw.date : "",
+    dayNumber: Number.isFinite(raw.dayNumber) ? raw.dayNumber : null,
+    type: kind === "secondary" ? (raw.type === "pesas" ? "pesas" : "running") : "hyrox",
+    durationMin: Number.isFinite(raw.durationMin) ? raw.durationMin : null,
+    hrAvg: Number.isFinite(raw.hrAvg) ? raw.hrAvg : null,
+    hrMax: Number.isFinite(raw.hrMax) ? raw.hrMax : null,
+    rpe: Number.isFinite(raw.rpe) ? raw.rpe : null,
+    segments: Array.isArray(raw.segments)
+      ? raw.segments.filter((s) => s && typeof s === "object").map((s) => ({ label: String(s.label || ""), value: String(s.value || "") }))
+      : [],
+    notes: typeof raw.notes === "string" ? raw.notes : "",
+  };
+}
+
+function migratePerformance(raw) {
+  const out = { hyrox: [], secondary: [] };
+  if (!raw) return out;
+  if (Array.isArray(raw)) {
+    raw.forEach((entry) => {
+      const kind = entry && (entry.category === "hyrox" || entry.kind === "hyrox" || entry.type === "hyrox") ? "hyrox" : "secondary";
+      const s = sanitizePerfEntry(entry, kind);
+      if (s) out[kind].push(s);
+    });
+    return out;
+  }
+  if (typeof raw === "object") {
+    if (Array.isArray(raw.hyrox)) raw.hyrox.forEach((e) => { const s = sanitizePerfEntry(e, "hyrox"); if (s) out.hyrox.push(s); });
+    if (Array.isArray(raw.secondary)) raw.secondary.forEach((e) => { const s = sanitizePerfEntry(e, "secondary"); if (s) out.secondary.push(s); });
+    if (Array.isArray(raw.running)) raw.running.forEach((e) => { const s = sanitizePerfEntry({ ...e, type: "running" }, "secondary"); if (s) out.secondary.push(s); });
+    if (Array.isArray(raw.pesas)) raw.pesas.forEach((e) => { const s = sanitizePerfEntry({ ...e, type: "pesas" }, "secondary"); if (s) out.secondary.push(s); });
+  }
+  return out;
+}
+
+function sanitizeData(raw) {
+  const base = emptyData();
+  if (!raw || typeof raw !== "object") return base;
+  base.apiKey = typeof raw.apiKey === "string" ? raw.apiKey : "";
+  base.lastExportAt = typeof raw.lastExportAt === "string" ? raw.lastExportAt : null;
+  if (raw.days && typeof raw.days === "object" && !Array.isArray(raw.days)) {
+    Object.keys(raw.days).forEach((k) => { if (/^\d+$/.test(k)) base.days[k] = sanitizeDay(raw.days[k]); });
+  }
+  base.performance = migratePerformance(raw.performance);
+  if (Array.isArray(raw.frequentFoods)) {
+    const ff = raw.frequentFoods
+      .filter((f) => f && typeof f === "object" && typeof f.name === "string" && Number.isFinite(f.kcal))
+      .map((f) => ({ id: f.id || "ff" + Math.random().toString(36).slice(2), name: f.name, kcal: f.kcal, protein: Number.isFinite(f.protein) ? f.protein : 0, carbs: Number.isFinite(f.carbs) ? f.carbs : 0, fat: Number.isFinite(f.fat) ? f.fat : 0 }));
+    if (ff.length) base.frequentFoods = ff;
+  }
+  if (raw.plan && Array.isArray(raw.plan.phases) && raw.plan.phases.length) {
+    const phases = raw.plan.phases
+      .filter((p) => p && Number.isFinite(p.startDay) && Number.isFinite(p.endDay) && Number.isFinite(p.kcal))
+      .map((p, i) => ({
+        id: Number.isFinite(p.id) ? p.id : i + 1,
+        name: typeof p.name === "string" ? p.name : "Fase " + (i + 1),
+        startDay: p.startDay, endDay: p.endDay, kcal: p.kcal,
+        protein: Number.isFinite(p.protein) ? p.protein : 0,
+        carbs: Number.isFinite(p.carbs) ? p.carbs : 0,
+        fat: Number.isFinite(p.fat) ? p.fat : 0,
+      }));
+    if (phases.length) base.plan.phases = phases;
+  }
+  return base;
+}
+
+function loadData() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return emptyData();
+    return sanitizeData(JSON.parse(raw));
+  } catch (e) {
+    console.error("Datos guardados ilegibles, se inicia limpio:", e);
+    return emptyData();
+  }
+}
+function saveData(data) {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); return true; }
+  catch (e) { console.error("Error guardando:", e); return false; }
+}
+
+/* =========================================================
+   IA — llamadas directas a la API pública de Anthropic
+   ========================================================= */
+async function callClaude(apiKey, content, maxTokens) {
+  const resp = await fetch(ANTHROPIC_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01",
+      "anthropic-dangerous-direct-browser-access": "true",
+    },
+    body: JSON.stringify({ model: CLAUDE_MODEL, max_tokens: maxTokens || 1024, messages: [{ role: "user", content }] }),
+  });
+  if (!resp.ok) {
+    let detail = "";
+    try { const j = await resp.json(); detail = (j && j.error && j.error.message) || JSON.stringify(j); } catch (e) {}
+    throw new Error("API " + resp.status + (detail ? ": " + detail : ""));
+  }
+  const data = await resp.json();
+  const textBlock = (data.content || []).find((b) => b.type === "text");
+  if (!textBlock) throw new Error("La IA no devolvió texto");
   return textBlock.text;
 }
-function extractJSON(text) {
-  const cleaned = String(text || '').replace(/```json/gi, '').replace(/```/g, '').trim();
-  const start = cleaned.indexOf('{');
-  const end = cleaned.lastIndexOf('}');
-  if (start === -1 || end === -1) throw new Error('No se encontró JSON en la respuesta de la IA');
-  return JSON.parse(cleaned.slice(start, end + 1));
+function extractJson(text) {
+  let t = (text || "").trim();
+  t = t.replace(/^```json/i, "").replace(/^```/, "").replace(/```$/, "").trim();
+  const start = t.indexOf("{"); const end = t.lastIndexOf("}");
+  if (start !== -1 && end !== -1) t = t.slice(start, end + 1);
+  return JSON.parse(t);
 }
-function resizeImageFile(file, maxDim, quality) {
-  maxDim = maxDim || 1280;
-  quality = quality || 0.82;
+async function aiParseMealText(apiKey, text) {
+  const prompt = 'Eres un nutriólogo. Analiza esta comida descrita en texto y estima sus macros totales. Responde UNICAMENTE con JSON valido, sin texto adicional ni markdown, con este formato exacto: {"name":"nombre corto","kcal":numero,"protein":numero,"carbs":numero,"fat":numero}. Comida: ' + text;
+  const raw = await callClaude(apiKey, prompt, 400);
+  return extractJson(raw);
+}
+async function aiParseMealPhoto(apiKey, base64, mediaType) {
+  const prompt = 'Eres un nutriologo. Observa esta foto de un platillo y estima sus macros totales de la porcion visible. Responde UNICAMENTE con JSON valido, sin texto adicional, con este formato exacto: {"name":"nombre corto","kcal":numero,"protein":numero,"carbs":numero,"fat":numero}.';
+  const raw = await callClaude(apiKey, [{ type: "image", source: { type: "base64", media_type: mediaType, data: base64 } }, { type: "text", text: prompt }], 400);
+  return extractJson(raw);
+}
+async function aiParseScalePhoto(apiKey, base64, mediaType) {
+  const prompt = 'Observa esta foto de una bascula corporal y extrae los valores visibles. Responde UNICAMENTE con JSON valido, con este formato: {"kg":numero,"bodyFatPct":numero_o_null,"musclePct":numero_o_null,"visceral":numero_o_null,"waterPct":numero_o_null}. Usa null si un dato no es visible.';
+  const raw = await callClaude(apiKey, [{ type: "image", source: { type: "base64", media_type: mediaType, data: base64 } }, { type: "text", text: prompt }], 300);
+  return extractJson(raw);
+}
+async function aiParseWatchPhoto(apiKey, base64, mediaType) {
+  const prompt = 'Observa esta foto de un resumen de entrenamiento (Apple Watch u otro reloj) y extrae los valores visibles. Responde UNICAMENTE con JSON valido, con este formato: {"durationMin":numero_o_null,"hrAvg":numero_o_null,"hrMax":numero_o_null}. Usa null si un dato no es visible.';
+  const raw = await callClaude(apiKey, [{ type: "image", source: { type: "base64", media_type: mediaType, data: base64 } }, { type: "text", text: prompt }], 300);
+  return extractJson(raw);
+}
+function fileToBase64(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onload = () => {
-      const img = new Image();
-      img.onload = () => {
-        let width = img.width, height = img.height;
-        if (width > maxDim || height > maxDim) {
-          if (width > height) { height = Math.round(height * maxDim / width); width = maxDim; }
-          else { width = Math.round(width * maxDim / height); height = maxDim; }
-        }
-        const canvas = document.createElement('canvas');
-        canvas.width = width; canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, width, height);
-        const dataUrl = canvas.toDataURL('image/jpeg', quality);
-        resolve({ base64: dataUrl.split(',')[1], mediaType: 'image/jpeg' });
-      };
-      img.onerror = () => reject(new Error('No se pudo procesar la imagen'));
-      img.src = reader.result;
-    };
-    reader.onerror = () => reject(new Error('No se pudo leer el archivo'));
+    reader.onload = () => resolve(String(reader.result).split(",")[1] || "");
+    reader.onerror = () => reject(new Error("No se pudo leer el archivo"));
     reader.readAsDataURL(file);
   });
 }
-async function analyzeMealText(apiKey, description) {
-  const system = 'Eres un nutriólogo experto. Responde ÚNICAMENTE con un objeto JSON válido, sin texto adicional ni backticks. Formato exacto: {"name": string, "kcal": number, "protein": number, "carbs": number, "fat": number}. Estima con tu mejor criterio según porciones típicas.';
-  const text = await callClaude(apiKey, description, { system, maxTokens: 300 });
-  return extractJSON(text);
-}
-async function analyzeMealPhoto(apiKey, base64, mediaType) {
-  const system = 'Eres un nutriólogo experto analizando fotos de platillos. Responde ÚNICAMENTE con un objeto JSON válido, sin texto adicional. Formato exacto: {"name": string, "kcal": number, "protein": number, "carbs": number, "fat": number}. Estima porciones a partir de la imagen.';
-  const content = [
-    { type: 'image', source: { type: 'base64', media_type: mediaType, data: base64 } },
-    { type: 'text', text: 'Analiza este platillo y estima sus macros.' },
-  ];
-  const text = await callClaude(apiKey, content, { system, maxTokens: 300 });
-  return extractJSON(text);
-}
-async function analyzeScalePhoto(apiKey, base64, mediaType) {
-  const system = 'Analiza esta foto de una báscula corporal o app de salud. Responde ÚNICAMENTE con un objeto JSON válido, sin texto adicional. Formato exacto: {"weight_kg": number|null, "body_fat_pct": number|null, "muscle_kg": number|null, "visceral": number|null, "water_pct": number|null}. Usa null en cualquier campo que no puedas leer con certeza.';
-  const content = [
-    { type: 'image', source: { type: 'base64', media_type: mediaType, data: base64 } },
-    { type: 'text', text: 'Extrae los datos de esta báscula.' },
-  ];
-  const text = await callClaude(apiKey, content, { system, maxTokens: 300 });
-  return extractJSON(text);
-}
-async function analyzeWatchPhoto(apiKey, base64, mediaType) {
-  const system = 'Analiza esta foto del resumen de un entrenamiento de Apple Watch. Responde ÚNICAMENTE con un objeto JSON válido, sin texto adicional. Formato exacto: {"duration_min": number|null, "hr_avg": number|null, "hr_max": number|null, "calories": number|null}. Usa null si no puedes leer un dato con certeza.';
-  const content = [
-    { type: 'image', source: { type: 'base64', media_type: mediaType, data: base64 } },
-    { type: 'text', text: 'Extrae los datos de este entrenamiento.' },
-  ];
-  const text = await callClaude(apiKey, content, { system, maxTokens: 300 });
-  return extractJSON(text);
-}
 
-// ============================================================
-// STATS / CHART DATA (defensively coded)
-// ============================================================
-function computeStats(plan, days, performance) {
-  try {
-    const today = todayDayNumber(plan);
-    let expected = 0, actual = 0;
-    const rpeValues = [];
-    for (let d = 1; d <= today; d++) {
-      const sched = getSchedule(plan, d);
-      const entry = getDayDataFor(days, plan, d);
-      ['hyrox', 'pesas', 'correr'].forEach(k => {
-        if (sched[k]) {
-          expected += 1;
-          if (entry.checks[k]) actual += 1;
-        }
-        if (entry.checks[k] && typeof entry.rpe[k] === 'number') rpeValues.push(entry.rpe[k]);
-      });
-    }
-    const adherence = expected > 0 ? Math.round((actual / expected) * 100) : 0;
-    const avgRpe = rpeValues.length > 0 ? rpeValues.reduce((a, b) => a + b, 0) / rpeValues.length : null;
-    const daysToRace = Math.max(0, plan.totalDays - today);
-    return { adherence, avgRpe, daysElapsed: today, totalDays: plan.totalDays, daysToRace };
-  } catch (e) {
-    console.error('Error calculando stats', e);
-    return { adherence: 0, avgRpe: null, daysElapsed: 0, totalDays: plan.totalDays || 41, daysToRace: 0 };
-  }
-}
-function computeProgressData(plan, days, performance) {
-  try {
-    const today = todayDayNumber(plan);
-    const weightSeries = [], bfSeries = [], kcalRealSeries = [], kcalTargetSeries = [];
-    for (let d = 1; d <= today; d++) {
-      const entry = getDayDataFor(days, plan, d);
-      const label = String(d);
-      const w = entry.weight && typeof entry.weight.kg === 'number' ? entry.weight.kg : null;
-      weightSeries.push({ label, value: w });
-      const bf = entry.weight && typeof entry.weight.bodyFatPct === 'number' ? entry.weight.bodyFatPct : null;
-      bfSeries.push({ label, value: bf });
-      const mealsKcal = entry.meals.length > 0 ? entry.meals.reduce((s, m) => s + (Number(m.kcal) || 0), 0) : null;
-      kcalRealSeries.push({ label, value: mealsKcal });
-      kcalTargetSeries.push({ label, value: getKcalTarget(plan, d) });
-    }
-    const perf = performance || {};
-    const allSessions = [
-      ...(Array.isArray(perf.hyrox) ? perf.hyrox : []),
-      ...(Array.isArray(perf.secondary) ? perf.secondary : []),
-    ].filter(s => s && s.date).sort((a, b) => (a.date > b.date ? 1 : -1));
-    const hrSeries = allSessions
-      .filter(s => typeof s.hrAvg === 'number' && !isNaN(s.hrAvg))
-      .map(s => ({ label: String(s.date).slice(5), value: s.hrAvg }));
-    return { weightSeries, bfSeries, kcalRealSeries, kcalTargetSeries, hrSeries };
-  } catch (e) {
-    console.error('Error calculando progreso', e);
-    return { weightSeries: [], bfSeries: [], kcalRealSeries: [], kcalTargetSeries: [], hrSeries: [] };
-  }
-}
-
-// ============================================================
-// ERROR BOUNDARY (prevents a single broken screen from taking down the whole app)
-// ============================================================
+/* =========================================================
+   ERROR BOUNDARY
+   ========================================================= */
 class ErrorBoundary extends React.Component {
-  constructor(props) {
-    super(props);
-    this.state = { hasError: false, error: null };
-  }
-  static getDerivedStateFromError(error) {
-    return { hasError: true, error };
-  }
-  componentDidCatch(error, info) {
-    console.error('Error de renderizado:', error, info);
-  }
+  constructor(props) { super(props); this.state = { error: null }; }
+  static getDerivedStateFromError(error) { return { error }; }
+  componentDidCatch(error, info) { console.error("ErrorBoundary:", error, info); }
   render() {
-    if (this.state.hasError) {
+    if (this.state.error) {
       return (
-        <div style={{ padding: '20px 16px' }}>
-          <div style={{ color: '#FF5A36', fontWeight: 700, marginBottom: '8px' }}>Esta pantalla tuvo un error</div>
-          <div style={{ color: '#9A9DA6', fontSize: '13px', lineHeight: 1.5, marginBottom: '10px' }}>
-            Tus datos siguen guardados en este teléfono. Ve a la pestaña Datos para revisar o exportar tu respaldo,
-            o intenta de nuevo.
-          </div>
-          <pre style={{ background: '#1C1F24', padding: '10px', borderRadius: '8px', fontSize: '11px', color: '#9A9DA6', overflow: 'auto' }}>
-            {String((this.state.error && this.state.error.message) || this.state.error)}
-          </pre>
-          <button className="btn-primary" style={{ marginTop: '12px' }} onClick={() => this.setState({ hasError: false, error: null })}>
-            Intentar de nuevo
-          </button>
+        <div className="err-fallback">
+          <h2>Algo falló aquí</h2>
+          <p className="muted small">{String((this.state.error && this.state.error.message) || this.state.error)}</p>
+          <button className="btn btn-secondary" style={{ marginTop: 12 }} onClick={() => this.setState({ error: null })}>Reintentar</button>
         </div>
       );
     }
@@ -562,901 +520,778 @@ class ErrorBoundary extends React.Component {
   }
 }
 
-// ============================================================
-// CHART COMPONENT (hand-rolled SVG, defensive against missing/NaN data)
-// ============================================================
-function MultiLineChart({ title, series, formatY }) {
-  const width = 320, height = 150, padX = 34, padY = 18;
-  const fmt = formatY || (v => Math.round(v));
-  const safeSeries = Array.isArray(series) ? series : [];
-  const length = Math.max(0, ...safeSeries.map(s => (Array.isArray(s.points) ? s.points.length : 0)));
-  const allValues = safeSeries
-    .flatMap(s => (Array.isArray(s.points) ? s.points : []))
-    .map(p => p && p.value)
-    .filter(v => typeof v === 'number' && !isNaN(v));
-
-  if (length < 2 || allValues.length < 2) {
-    return (
-      <div className="chart-card">
-        <div className="chart-title"><span>{title}</span></div>
-        <div className="chart-empty">Aún no hay suficientes datos para graficar</div>
-      </div>
-    );
-  }
-
-  let min = Math.min.apply(null, allValues);
-  let max = Math.max.apply(null, allValues);
-  if (min === max) { min -= 1; max += 1; }
-  const padV = (max - min) * 0.1;
-  min -= padV; max += padV;
-  const rangeX = width - padX * 2;
-  const rangeY = height - padY * 2;
-  const xStep = length > 1 ? rangeX / (length - 1) : 0;
-
-  function pathFor(points) {
-    let d = '', started = false;
-    points.forEach((p, i) => {
-      if (!p || typeof p.value !== 'number' || isNaN(p.value)) { started = false; return; }
-      const x = padX + i * xStep;
-      const y = padY + rangeY - ((p.value - min) / (max - min)) * rangeY;
-      d += (started ? ' L ' : ' M ') + x.toFixed(1) + ' ' + y.toFixed(1);
-      started = true;
-    });
-    return d;
-  }
-
-  const firstSeriesPoints = (safeSeries[0] && Array.isArray(safeSeries[0].points)) ? safeSeries[0].points : [];
-  const firstLabel = (firstSeriesPoints[0] && firstSeriesPoints[0].label) || '';
-  const lastLabel = (firstSeriesPoints[firstSeriesPoints.length - 1] && firstSeriesPoints[firstSeriesPoints.length - 1].label) || '';
-
+/* =========================================================
+   UI — piezas pequeñas reutilizables
+   ========================================================= */
+function RpeSelect({ value, onChange }) {
   return (
-    <div className="chart-card">
-      <div className="chart-title">
-        <span>{title}</span>
-        {safeSeries.length > 1 && (
-          <span className="chart-legend">
-            {safeSeries.map(s => <span key={s.name} style={{ color: s.color, marginLeft: 8 }}>● {s.name}</span>)}
-          </span>
-        )}
-      </div>
-      <svg viewBox={'0 0 ' + width + ' ' + height} className="chart-svg" preserveAspectRatio="xMidYMid meet">
-        <line x1={padX} y1={padY} x2={padX} y2={height - padY} stroke="#2B2F36" strokeWidth="1" />
-        <line x1={padX} y1={height - padY} x2={width - padX} y2={height - padY} stroke="#2B2F36" strokeWidth="1" />
-        <text x={padX - 4} y={padY + 4} textAnchor="end" fontSize="9" fill="#9A9DA6">{fmt(max)}</text>
-        <text x={padX - 4} y={height - padY} textAnchor="end" fontSize="9" fill="#9A9DA6">{fmt(min)}</text>
-        {safeSeries.map((s, si) => {
-          const points = Array.isArray(s.points) ? s.points : [];
-          const d = pathFor(points);
-          const validIdx = [];
-          points.forEach((p, i) => { if (p && typeof p.value === 'number' && !isNaN(p.value)) validIdx.push(i); });
-          const lastIdx = validIdx[validIdx.length - 1];
-          return (
-            <g key={si}>
-              {d && <path d={d} fill="none" stroke={s.color} strokeWidth="2" />}
-              {validIdx.map(i => {
-                const x = padX + i * xStep;
-                const y = padY + rangeY - ((points[i].value - min) / (max - min)) * rangeY;
-                return <circle key={i} cx={x} cy={y} r={i === lastIdx ? 3.5 : 2} fill={s.color} />;
-              })}
-            </g>
-          );
-        })}
-      </svg>
-      <div className="chart-labels"><span>{firstLabel}</span><span>{lastLabel}</span></div>
-    </div>
-  );
-}
-
-// ============================================================
-// DAY SELECTOR (signature UI element — race countdown strip)
-// ============================================================
-function DaySelector({ plan, selectedDay, onSelect, days }) {
-  const scrollRef = useRef(null);
-  const today = todayDayNumber(plan);
-
-  useEffect(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-    const activeEl = el.querySelector('.day-pill.selected');
-    if (activeEl && activeEl.scrollIntoView) activeEl.scrollIntoView({ inline: 'center', block: 'nearest' });
-  }, [selectedDay]);
-
-  const pills = [];
-  for (let d = 1; d <= plan.totalDays; d++) {
-    const phase = getPhase(plan, d);
-    const entry = getDayDataFor(days, plan, d);
-    const hasData = entry.meals.length > 0 || !!entry.weight || Object.values(entry.checks).some(Boolean);
-    pills.push(
-      <button
-        key={d}
-        type="button"
-        className={'day-pill' + (d === selectedDay ? ' selected' : '') + (d === today ? ' is-today' : '')}
-        data-phase={phase}
-        onClick={() => onSelect(d)}
-      >
-        <span className="day-pill-num">{d === plan.totalDays ? '🏁' : d}</span>
-        {hasData && <span className="day-pill-dot"></span>}
-      </button>
-    );
-  }
-  return <div className="day-selector" ref={scrollRef}>{pills}</div>;
-}
-
-// ============================================================
-// CHECKLIST + ROUTINE DETAIL
-// ============================================================
-function ChecklistSection({ schedule, checks, rpe, onToggle, onRpe }) {
-  const items = [
-    { key: 'hyrox', label: '🏆 Hyrox / HIIT', scheduled: schedule.hyrox },
-    { key: 'pesas', label: '🏋️ Pesas', scheduled: schedule.pesas },
-    { key: 'correr', label: '🏃 Correr Z2' + (schedule.correrMin ? ' (' + schedule.correrMin + ' min)' : ''), scheduled: schedule.correr },
-  ];
-  return (
-    <div className="checklist">
-      {items.map(item => (
-        <div key={item.key} className={'checklist-row' + (item.scheduled ? ' scheduled' : '')}>
-          <label className="checklist-label">
-            <input type="checkbox" checked={!!checks[item.key]} onChange={() => onToggle(item.key)} />
-            <span>{item.label}</span>
-            {item.scheduled && <span className="scheduled-tag">programado</span>}
-          </label>
-          {checks[item.key] && (
-            <select className="rpe-select" value={rpe[item.key] || ''} onChange={e => onRpe(item.key, Number(e.target.value))}>
-              <option value="">RPE</option>
-              {[1,2,3,4,5,6,7,8,9,10].map(n => <option key={n} value={n}>{n}</option>)}
-            </select>
-          )}
-        </div>
+    <div className="rpe-select">
+      {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
+        <div key={n} className={"rpe-dot" + (value === n ? " active" : "")} onClick={() => onChange(value === n ? null : n)}>{n}</div>
       ))}
     </div>
   );
 }
-function RoutineDetail({ schedule }) {
-  const routine = schedule.pesasType ? ROUTINES[schedule.pesasType] : null;
+function MacroBar({ label, value, target, color }) {
+  const pct = target > 0 ? clip(Math.round((value / target) * 100), 0, 100) : 0;
   return (
-    <div className="routine-detail">
-      {schedule.pesas && routine && (
-        <div className="routine-block">
-          <div className="routine-title">{routine.title}</div>
-          <ul>{routine.exercises.map((ex, i) => <li key={i}>{ex}</li>)}</ul>
-        </div>
-      )}
-      {schedule.correr && (
-        <div className="routine-block">
-          <div className="routine-title">Running Zona 2 — {schedule.correrMin} min</div>
-          <ul>{Z2_PROTOCOL.map((s, i) => <li key={i}>{s}</li>)}</ul>
-        </div>
-      )}
-      {schedule.hyrox && (
-        <div className="routine-block">
-          <div className="routine-title">Hyrox / HIIT</div>
-          <p className="routine-note">Sigue tu plantilla habitual de estaciones. Registra duración, FC y RPE en la pestaña Rendimiento al terminar.</p>
-        </div>
-      )}
-      {!schedule.hyrox && !schedule.pesas && !schedule.correr && (
-        <p className="routine-note">Día de descanso. Prioriza sueño, hidratación y proteína.</p>
-      )}
+    <div className="macro-bar-wrap">
+      <div className="macro-bar-label"><span>{label}</span><span>{Math.round(value)}g / {target}g</span></div>
+      <div className="macro-bar-track"><div className="macro-bar-fill" style={{ width: pct + "%", background: color }}></div></div>
     </div>
   );
 }
-
-// ============================================================
-// MEAL SECTION
-// ============================================================
-function MealSection({ meals, onAdd, onRemove, apiKey, foods }) {
-  const [showManual, setShowManual] = useState(false);
-  const [showAiText, setShowAiText] = useState(false);
-  const [aiDescription, setAiDescription] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [pendingMeal, setPendingMeal] = useState(null);
-  const [manualForm, setManualForm] = useState({ name: '', kcal: '', protein: '', carbs: '', fat: '' });
-  const fileInputRef = useRef(null);
-
-  const totalKcal = meals.reduce((s, m) => s + (Number(m.kcal) || 0), 0);
-
-  function addFromChip(food) {
-    onAdd({ name: food.name, kcal: food.kcal, protein: food.protein, carbs: food.carbs, fat: food.fat, source: 'chip', time: nowTime() });
-  }
-  function submitManual(e) {
-    e.preventDefault();
-    if (!manualForm.name.trim()) return;
-    onAdd({
-      name: manualForm.name.trim(),
-      kcal: Number(manualForm.kcal) || 0,
-      protein: Number(manualForm.protein) || 0,
-      carbs: Number(manualForm.carbs) || 0,
-      fat: Number(manualForm.fat) || 0,
-      source: 'manual',
-      time: nowTime(),
-    });
-    setManualForm({ name: '', kcal: '', protein: '', carbs: '', fat: '' });
-    setShowManual(false);
-  }
-  async function submitAiText() {
-    if (!aiDescription.trim()) return;
-    setLoading(true); setError('');
-    try {
-      const result = await analyzeMealText(apiKey, aiDescription.trim());
-      setPendingMeal({
-        name: result.name || aiDescription.trim(),
-        kcal: Number(result.kcal) || 0,
-        protein: Number(result.protein) || 0,
-        carbs: Number(result.carbs) || 0,
-        fat: Number(result.fat) || 0,
-        source: 'ai_text',
-        time: nowTime(),
-      });
-    } catch (e) {
-      setError('No se pudo calcular con IA: ' + e.message);
-    } finally {
-      setLoading(false);
-    }
-  }
-  async function handlePhoto(e) {
-    const file = e.target.files && e.target.files[0];
-    if (!file) return;
-    setLoading(true); setError('');
-    try {
-      const { base64, mediaType } = await resizeImageFile(file);
-      const result = await analyzeMealPhoto(apiKey, base64, mediaType);
-      setPendingMeal({
-        name: result.name || 'Platillo (foto)',
-        kcal: Number(result.kcal) || 0,
-        protein: Number(result.protein) || 0,
-        carbs: Number(result.carbs) || 0,
-        fat: Number(result.fat) || 0,
-        source: 'ai_photo',
-        time: nowTime(),
-      });
-    } catch (e) {
-      setError('No se pudo analizar la foto: ' + e.message);
-    } finally {
-      setLoading(false);
-      if (fileInputRef.current) fileInputRef.current.value = '';
-    }
-  }
-  function confirmPending() {
-    onAdd(pendingMeal);
-    setPendingMeal(null);
-    setAiDescription('');
-    setShowAiText(false);
-  }
-
+function ExpandableRoutine({ routine }) {
+  const [open, setOpen] = useState(false);
   return (
-    <div className="section-card">
-      <div className="section-header"><span>🍽️ Comidas</span><span className="section-total">{Math.round(totalKcal)} kcal</span></div>
-
-      {meals.length > 0 && (
-        <ul className="meal-list">
-          {meals.map(m => (
-            <li key={m.id} className="meal-item">
-              <div>
-                <div className="meal-name">{m.name}</div>
-                <div className="meal-macros">{Math.round(m.kcal || 0)} kcal · P{Math.round(m.protein || 0)} C{Math.round(m.carbs || 0)} G{Math.round(m.fat || 0)}</div>
-              </div>
-              <button className="icon-btn" onClick={() => onRemove(m.id)}>✕</button>
-            </li>
-          ))}
-        </ul>
-      )}
-
-      <div className="chip-row">
-        {(foods || []).map(f => <button key={f.id} className="chip" onClick={() => addFromChip(f)}>{f.name}</button>)}
-      </div>
-
-      {error && <div className="error-text">{error}</div>}
-      {loading && <div className="loading-text">Analizando con IA…</div>}
-
-      {pendingMeal && (
-        <div className="pending-card">
-          <div className="pending-title">Confirma antes de guardar</div>
-          <div className="pending-grid">
-            <input value={pendingMeal.name} onChange={e => setPendingMeal({ ...pendingMeal, name: e.target.value })} />
-            <input type="number" value={pendingMeal.kcal} onChange={e => setPendingMeal({ ...pendingMeal, kcal: Number(e.target.value) })} placeholder="kcal" />
-            <input type="number" value={pendingMeal.protein} onChange={e => setPendingMeal({ ...pendingMeal, protein: Number(e.target.value) })} placeholder="prot g" />
-            <input type="number" value={pendingMeal.carbs} onChange={e => setPendingMeal({ ...pendingMeal, carbs: Number(e.target.value) })} placeholder="carb g" />
-            <input type="number" value={pendingMeal.fat} onChange={e => setPendingMeal({ ...pendingMeal, fat: Number(e.target.value) })} placeholder="grasa g" />
-          </div>
-          <div className="pending-actions">
-            <button className="btn-primary" onClick={confirmPending}>Guardar</button>
-            <button className="btn-ghost" onClick={() => setPendingMeal(null)}>Cancelar</button>
-          </div>
-        </div>
-      )}
-
-      <div className="action-row">
-        <button className="btn-ghost" onClick={() => setShowManual(!showManual)}>+ Manual</button>
-        <button className="btn-ghost" onClick={() => setShowAiText(!showAiText)}>💬 Describir (IA)</button>
-        <button className="btn-ghost" onClick={() => fileInputRef.current && fileInputRef.current.click()}>📷 Foto (IA)</button>
-        <input ref={fileInputRef} type="file" accept="image/*" capture="environment" style={{ display: 'none' }} onChange={handlePhoto} />
-      </div>
-
-      {showManual && (
-        <form className="manual-form" onSubmit={submitManual}>
-          <input placeholder="Nombre" value={manualForm.name} onChange={e => setManualForm({ ...manualForm, name: e.target.value })} />
-          <div className="manual-grid">
-            <input type="number" placeholder="kcal" value={manualForm.kcal} onChange={e => setManualForm({ ...manualForm, kcal: e.target.value })} />
-            <input type="number" placeholder="prot g" value={manualForm.protein} onChange={e => setManualForm({ ...manualForm, protein: e.target.value })} />
-            <input type="number" placeholder="carb g" value={manualForm.carbs} onChange={e => setManualForm({ ...manualForm, carbs: e.target.value })} />
-            <input type="number" placeholder="grasa g" value={manualForm.fat} onChange={e => setManualForm({ ...manualForm, fat: e.target.value })} />
-          </div>
-          <button className="btn-primary" type="submit">Agregar</button>
-        </form>
-      )}
-
-      {showAiText && (
-        <div className="ai-text-form">
-          <textarea placeholder="Ej. 150g de pechuga de pollo con arroz y ensalada" value={aiDescription} onChange={e => setAiDescription(e.target.value)} />
-          <button className="btn-primary" onClick={submitAiText} disabled={loading}>Calcular con IA</button>
+    <div>
+      <button className="expand-toggle" onClick={() => setOpen((o) => !o)}>{open ? "▾" : "▸"} Ver qué hacer</button>
+      {open && (
+        <div className="routine-box">
+          <div style={{ marginBottom: 6 }}><b>{routine.title}</b></div>
+          {routine.exercises
+            ? routine.exercises.map((ex, i) => (<div key={i} className="routine-ex"><span>{ex.name}</span><span>{ex.sets}</span></div>))
+            : <div>{routine.text}</div>}
         </div>
       )}
     </div>
   );
 }
-
-// ============================================================
-// WEIGHT SECTION
-// ============================================================
-function WeightSection({ weight, onSave, apiKey }) {
-  const emptyForm = { kg: '', bodyFatPct: '', muscleKg: '', visceral: '', water: '' };
-  const [form, setForm] = useState(() => weight ? {
-    kg: weight.kg ?? '', bodyFatPct: weight.bodyFatPct ?? '', muscleKg: weight.muscleKg ?? '',
-    visceral: weight.visceral ?? '', water: weight.water ?? '',
-  } : emptyForm);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const fileInputRef = useRef(null);
-
-  useEffect(() => {
-    setForm(weight ? {
-      kg: weight.kg ?? '', bodyFatPct: weight.bodyFatPct ?? '', muscleKg: weight.muscleKg ?? '',
-      visceral: weight.visceral ?? '', water: weight.water ?? '',
-    } : emptyForm);
-  }, [weight]);
-
-  function submit(e) {
-    e.preventDefault();
-    if (form.kg === '' || form.kg === null || form.kg === undefined) return;
-    onSave({
-      kg: Number(form.kg),
-      bodyFatPct: form.bodyFatPct !== '' ? Number(form.bodyFatPct) : null,
-      muscleKg: form.muscleKg !== '' ? Number(form.muscleKg) : null,
-      visceral: form.visceral !== '' ? Number(form.visceral) : null,
-      water: form.water !== '' ? Number(form.water) : null,
-    });
-  }
-  async function handlePhoto(e) {
-    const file = e.target.files && e.target.files[0];
-    if (!file) return;
-    setLoading(true); setError('');
-    try {
-      const { base64, mediaType } = await resizeImageFile(file);
-      const result = await analyzeScalePhoto(apiKey, base64, mediaType);
-      setForm({
-        kg: result.weight_kg !== null && result.weight_kg !== undefined ? result.weight_kg : form.kg,
-        bodyFatPct: result.body_fat_pct !== null && result.body_fat_pct !== undefined ? result.body_fat_pct : form.bodyFatPct,
-        muscleKg: result.muscle_kg !== null && result.muscle_kg !== undefined ? result.muscle_kg : form.muscleKg,
-        visceral: result.visceral !== null && result.visceral !== undefined ? result.visceral : form.visceral,
-        water: result.water_pct !== null && result.water_pct !== undefined ? result.water_pct : form.water,
-      });
-    } catch (e) {
-      setError('No se pudo leer la báscula: ' + e.message);
-    } finally {
-      setLoading(false);
-      if (fileInputRef.current) fileInputRef.current.value = '';
-    }
-  }
-
+function ChecklistRow({ label, meta, done, rpe, onToggle, onRpe, children }) {
   return (
-    <div className="section-card">
-      <div className="section-header"><span>⚖️ Peso corporal</span></div>
-      {error && <div className="error-text">{error}</div>}
-      {loading && <div className="loading-text">Leyendo báscula…</div>}
-      <form className="weight-form" onSubmit={submit}>
-        <div className="manual-grid">
-          <input type="number" step="0.1" placeholder="kg" value={form.kg} onChange={e => setForm({ ...form, kg: e.target.value })} />
-          <input type="number" step="0.1" placeholder="% grasa" value={form.bodyFatPct} onChange={e => setForm({ ...form, bodyFatPct: e.target.value })} />
-          <input type="number" step="0.1" placeholder="músculo kg" value={form.muscleKg} onChange={e => setForm({ ...form, muscleKg: e.target.value })} />
-          <input type="number" step="1" placeholder="visceral" value={form.visceral} onChange={e => setForm({ ...form, visceral: e.target.value })} />
-          <input type="number" step="0.1" placeholder="% agua" value={form.water} onChange={e => setForm({ ...form, water: e.target.value })} />
+    <div>
+      <div className="check-row">
+        <div className={"check-box" + (done ? " checked" : "")} onClick={onToggle}>{done ? "✓" : ""}</div>
+        <div style={{ flex: 1 }}>
+          <div className="check-label">{label}</div>
+          {meta && <div className="check-meta">{meta}</div>}
         </div>
-        <div className="action-row">
-          <button className="btn-primary" type="submit">Guardar</button>
-          <button type="button" className="btn-ghost" onClick={() => fileInputRef.current && fileInputRef.current.click()}>📷 Foto de báscula (IA)</button>
-        </div>
-        <input ref={fileInputRef} type="file" accept="image/*" capture="environment" style={{ display: 'none' }} onChange={handlePhoto} />
-      </form>
-    </div>
-  );
-}
-
-// ============================================================
-// DÍA TAB
-// ============================================================
-function DiaTab({ plan, days, updateDay, apiKey, foods, selectedDay, setSelectedDay }) {
-  const dayData = getDayDataFor(days, plan, selectedDay);
-  const schedule = useMemo(() => getSchedule(plan, selectedDay), [plan, selectedDay]);
-  const phase = getPhase(plan, selectedDay);
-  const kcalTarget = getKcalTarget(plan, selectedDay);
-  const [expandedRoutine, setExpandedRoutine] = useState(false);
-
-  const totalKcal = dayData.meals.reduce((s, m) => s + (Number(m.kcal) || 0), 0);
-  const totalProtein = dayData.meals.reduce((s, m) => s + (Number(m.protein) || 0), 0);
-
-  function toggleCheck(key) {
-    const checks = { ...dayData.checks };
-    checks[key] = !checks[key];
-    updateDay(selectedDay, { checks });
-  }
-  function setRpe(key, value) {
-    const rpe = { ...dayData.rpe };
-    rpe[key] = value;
-    updateDay(selectedDay, { rpe });
-  }
-  function addMeal(meal) {
-    updateDay(selectedDay, { meals: [...dayData.meals, { id: 'm' + Date.now() + Math.random().toString(16).slice(2), ...meal }] });
-  }
-  function removeMeal(id) {
-    updateDay(selectedDay, { meals: dayData.meals.filter(m => m.id !== id) });
-  }
-  function saveWeight(weight) {
-    updateDay(selectedDay, { weight });
-  }
-
-  return (
-    <div className="tab-content">
-      <DaySelector plan={plan} selectedDay={selectedDay} onSelect={setSelectedDay} days={days} />
-
-      <div className="day-summary-card">
-        <div className="day-summary-row">
-          <span className="badge">Fase {phase} · {PHASE_LABEL[phase]}</span>
-          <span>{weekdayName(dayNumberToDate(plan, selectedDay))} {dayNumberToISO(plan, selectedDay)}</span>
-        </div>
-        <div className="kcal-numbers">
-          <span className="kcal-real">{Math.round(totalKcal)}</span>
-          <span className="kcal-sep">/</span>
-          <span className="kcal-target">{kcalTarget} kcal</span>
-        </div>
-        <div className="kcal-bar"><div className="kcal-bar-fill" style={{ width: Math.min(100, (totalKcal / kcalTarget) * 100) + '%' }}></div></div>
-        <div className="macro-mini">Proteína: {Math.round(totalProtein)}g</div>
       </div>
-
-      <ChecklistSection schedule={schedule} checks={dayData.checks} rpe={dayData.rpe} onToggle={toggleCheck} onRpe={setRpe} />
-
-      <button type="button" className="link-btn" onClick={() => setExpandedRoutine(!expandedRoutine)}>
-        {expandedRoutine ? '▾ Ocultar rutina' : '▸ Ver qué hacer hoy'}
-      </button>
-      {expandedRoutine && <RoutineDetail schedule={schedule} />}
-
-      <MealSection meals={dayData.meals} onAdd={addMeal} onRemove={removeMeal} apiKey={apiKey} foods={foods} />
-
-      <WeightSection weight={dayData.weight} onSave={saveWeight} apiKey={apiKey} />
-    </div>
-  );
-}
-
-// ============================================================
-// RENDIMIENTO TAB
-// ============================================================
-function PerformanceCard({ title, entries, onAdd, onRemove, apiKey }) {
-  const [showForm, setShowForm] = useState(false);
-  const emptyForm = { date: toISO(new Date()), duration: '', hrAvg: '', hrMax: '', rpe: '', segments: '', notes: '' };
-  const [form, setForm] = useState(emptyForm);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const fileInputRef = useRef(null);
-  const list = Array.isArray(entries) ? entries : [];
-  const sorted = [...list].sort((a, b) => (a.date < b.date ? 1 : -1));
-
-  function submit(e) {
-    e.preventDefault();
-    if (!form.date) return;
-    onAdd({
-      id: 'p' + Date.now() + Math.random().toString(16).slice(2),
-      date: form.date,
-      duration: form.duration !== '' ? Number(form.duration) : null,
-      hrAvg: form.hrAvg !== '' ? Number(form.hrAvg) : null,
-      hrMax: form.hrMax !== '' ? Number(form.hrMax) : null,
-      rpe: form.rpe !== '' ? Number(form.rpe) : null,
-      segments: form.segments,
-      notes: form.notes,
-    });
-    setForm(emptyForm);
-    setShowForm(false);
-  }
-  async function handlePhoto(e) {
-    const file = e.target.files && e.target.files[0];
-    if (!file) return;
-    setLoading(true); setError('');
-    try {
-      const { base64, mediaType } = await resizeImageFile(file);
-      const result = await analyzeWatchPhoto(apiKey, base64, mediaType);
-      setForm(f => ({
-        ...f,
-        duration: result.duration_min !== null && result.duration_min !== undefined ? result.duration_min : f.duration,
-        hrAvg: result.hr_avg !== null && result.hr_avg !== undefined ? result.hr_avg : f.hrAvg,
-        hrMax: result.hr_max !== null && result.hr_max !== undefined ? result.hr_max : f.hrMax,
-      }));
-      setShowForm(true);
-    } catch (e) {
-      setError('No se pudo leer el Apple Watch: ' + e.message);
-    } finally {
-      setLoading(false);
-      if (fileInputRef.current) fileInputRef.current.value = '';
-    }
-  }
-
-  return (
-    <div className="section-card">
-      <div className="section-header"><span>{title}</span><span className="section-total">{list.length} sesiones</span></div>
-      {error && <div className="error-text">{error}</div>}
-      {loading && <div className="loading-text">Leyendo Apple Watch…</div>}
-
-      <div className="action-row">
-        <button className="btn-ghost" onClick={() => setShowForm(!showForm)}>+ Registrar sesión</button>
-        <button className="btn-ghost" onClick={() => fileInputRef.current && fileInputRef.current.click()}>📷 Foto Apple Watch (IA)</button>
-        <input ref={fileInputRef} type="file" accept="image/*" capture="environment" style={{ display: 'none' }} onChange={handlePhoto} />
-      </div>
-
-      {showForm && (
-        <form className="perf-form" onSubmit={submit}>
-          <div className="manual-grid">
-            <input type="date" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} />
-            <input type="number" placeholder="min" value={form.duration} onChange={e => setForm({ ...form, duration: e.target.value })} />
-            <input type="number" placeholder="FC prom" value={form.hrAvg} onChange={e => setForm({ ...form, hrAvg: e.target.value })} />
-            <input type="number" placeholder="FC máx" value={form.hrMax} onChange={e => setForm({ ...form, hrMax: e.target.value })} />
-          </div>
-          <select className="rpe-select" style={{ width: '100%' }} value={form.rpe} onChange={e => setForm({ ...form, rpe: e.target.value })}>
-            <option value="">RPE</option>
-            {[1,2,3,4,5,6,7,8,9,10].map(n => <option key={n} value={n}>{n}</option>)}
-          </select>
-          <textarea placeholder="Splits / estaciones / pesos" value={form.segments} onChange={e => setForm({ ...form, segments: e.target.value })} />
-          <textarea placeholder="Notas" value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} />
-          <button className="btn-primary" type="submit">Guardar sesión</button>
-        </form>
+      {done && onRpe && (
+        <div style={{ padding: "0 4px 8px 40px" }}>
+          <div className="check-meta" style={{ marginBottom: 5 }}>RPE (esfuerzo percibido)</div>
+          <RpeSelect value={rpe} onChange={onRpe} />
+        </div>
       )}
-
-      {sorted.length > 0 && (
-        <ul className="perf-list">
-          {sorted.map(en => (
-            <li key={en.id} className="perf-item">
-              <div className="perf-item-header">
-                <span>{en.date}</span>
-                <button className="icon-btn" onClick={() => onRemove(en.id)}>✕</button>
-              </div>
-              <div className="perf-item-stats">
-                {en.duration ? en.duration + ' min' : ''}
-                {en.hrAvg ? ' · FC prom ' + en.hrAvg : ''}
-                {en.hrMax ? ' · FC máx ' + en.hrMax : ''}
-                {en.rpe ? ' · RPE ' + en.rpe : ''}
-              </div>
-              {en.segments && <div className="perf-item-notes">{en.segments}</div>}
-              {en.notes && <div className="perf-item-notes">{en.notes}</div>}
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
-  );
-}
-function RendimientoTab({ performance, setPerformance, apiKey }) {
-  return (
-    <div className="tab-content">
-      <PerformanceCard
-        title="🏆 Hyrox"
-        entries={performance.hyrox}
-        apiKey={apiKey}
-        onAdd={entry => setPerformance(p => ({ ...p, hyrox: [...p.hyrox, entry] }))}
-        onRemove={id => setPerformance(p => ({ ...p, hyrox: p.hyrox.filter(e => e.id !== id) }))}
-      />
-      <PerformanceCard
-        title="🏋️🏃 Running / Pesas"
-        entries={performance.secondary}
-        apiKey={apiKey}
-        onAdd={entry => setPerformance(p => ({ ...p, secondary: [...p.secondary, entry] }))}
-        onRemove={id => setPerformance(p => ({ ...p, secondary: p.secondary.filter(e => e.id !== id) }))}
-      />
+      {children}
     </div>
   );
 }
 
-// ============================================================
-// PROGRESO TAB
-// ============================================================
-function ProgresoTab({ plan, days, performance }) {
-  const stats = useMemo(() => computeStats(plan, days, performance), [plan, days, performance]);
-  const chartData = useMemo(() => computeProgressData(plan, days, performance), [plan, days, performance]);
-
+/* =========================================================
+   TOPBAR / TABBAR
+   ========================================================= */
+function TopBar() {
+  const today = clip(todayDayNumber(), 1, TOTAL_DAYS + 1);
+  const left = TOTAL_DAYS - today;
   return (
-    <div className="tab-content">
-      <div className="stats-grid">
-        <div className="stat-box"><div className="stat-value">{stats.adherence}%</div><div className="stat-label">Adherencia</div></div>
-        <div className="stat-box"><div className="stat-value">{stats.avgRpe !== null ? stats.avgRpe.toFixed(1) : '—'}</div><div className="stat-label">RPE prom.</div></div>
-        <div className="stat-box"><div className="stat-value">{stats.daysElapsed}/{stats.totalDays}</div><div className="stat-label">Días</div></div>
-        <div className="stat-box"><div className="stat-value">{stats.daysToRace}</div><div className="stat-label">P/ carrera</div></div>
-      </div>
-
-      <MultiLineChart title="Peso corporal (kg)" formatY={v => v.toFixed(1)}
-        series={[{ name: 'Peso', color: '#FF5A36', points: chartData.weightSeries }]} />
-      <MultiLineChart title="% Grasa corporal" formatY={v => v.toFixed(1)}
-        series={[{ name: '% grasa', color: '#E8B339', points: chartData.bfSeries }]} />
-      <MultiLineChart title="Kcal real vs objetivo" formatY={v => Math.round(v)}
-        series={[
-          { name: 'Real', color: '#4CAF7D', points: chartData.kcalRealSeries },
-          { name: 'Objetivo', color: '#9A9DA6', points: chartData.kcalTargetSeries },
-        ]} />
-      <MultiLineChart title="FC promedio por sesión" formatY={v => Math.round(v)}
-        series={[{ name: 'FC', color: '#E5484D', points: chartData.hrSeries }]} />
-    </div>
-  );
-}
-
-// ============================================================
-// DATOS TAB
-// ============================================================
-function DatosTab({ apiKey, setApiKey, foods, setFoods, plan, setPlan, days, performance, lastBackup, setLastBackup }) {
-  const [showKey, setShowKey] = useState(false);
-  const [newFood, setNewFood] = useState({ name: '', kcal: '', protein: '', carbs: '', fat: '' });
-  const [planForm, setPlanForm] = useState(plan);
-  const [backupText, setBackupText] = useState('');
-  const [restoreText, setRestoreText] = useState('');
-  const [restoreMsg, setRestoreMsg] = useState('');
-  const [showDiag, setShowDiag] = useState(false);
-
-  useEffect(() => { setPlanForm(plan); }, [plan]);
-
-  function addFood(e) {
-    e.preventDefault();
-    if (!newFood.name.trim()) return;
-    setFoods([...foods, {
-      id: 'f' + Date.now(),
-      name: newFood.name.trim(),
-      kcal: Number(newFood.kcal) || 0,
-      protein: Number(newFood.protein) || 0,
-      carbs: Number(newFood.carbs) || 0,
-      fat: Number(newFood.fat) || 0,
-    }]);
-    setNewFood({ name: '', kcal: '', protein: '', carbs: '', fat: '' });
-  }
-  function removeFood(id) { setFoods(foods.filter(f => f.id !== id)); }
-
-  function savePlan(e) {
-    e.preventDefault();
-    setPlan({
-      ...plan,
-      startDate: planForm.startDate,
-      totalDays: Number(planForm.totalDays) || 41,
-      phase1End: Number(planForm.phase1End) || 1,
-      phase2End: Number(planForm.phase2End) || 2,
-      phase3End: Number(planForm.phase3End) || 3,
-      kcal: {
-        phase1: Number(planForm.kcal.phase1) || 2000,
-        phase2: Number(planForm.kcal.phase2) || 2000,
-        phase3: Number(planForm.kcal.phase3) || 2000,
-        phase4: Number(planForm.kcal.phase4) || 2000,
-      },
-    });
-  }
-
-  function doExport() {
-    const payload = { plan, days, performance, foods, exportedAt: new Date().toISOString() };
-    setBackupText(JSON.stringify(payload, null, 2));
-    const now = new Date().toISOString();
-    try { localStorage.setItem(STORAGE_KEYS.lastBackup, now); } catch (e) {}
-    setLastBackup(now);
-  }
-  function doRestore() {
-    try {
-      const parsed = JSON.parse(restoreText);
-      if (!parsed || typeof parsed !== 'object') throw new Error('Formato inválido');
-      if (parsed.plan) save(STORAGE_KEYS.plan, parsed.plan);
-      if (parsed.days) save(STORAGE_KEYS.days, parsed.days);
-      if (parsed.performance) save(STORAGE_KEYS.performance, parsed.performance);
-      if (parsed.foods) save(STORAGE_KEYS.foods, parsed.foods);
-      setRestoreMsg('Respaldo restaurado. Recarga la página para ver los cambios.');
-    } catch (e) {
-      setRestoreMsg('Error al restaurar: ' + e.message);
-    }
-  }
-  function doReset() {
-    if (!window.confirm('Esto borrará TODOS tus datos guardados en este teléfono. ¿Continuar?')) return;
-    if (!window.confirm('Confirma una vez más: se perderá todo tu historial. ¿Seguro?')) return;
-    Object.values(STORAGE_KEYS).forEach(k => { try { localStorage.removeItem(k); } catch (e) {} });
-    window.location.reload();
-  }
-
-  const daysSince = lastBackup ? Math.floor((Date.now() - new Date(lastBackup).getTime()) / 86400000) : null;
-
-  return (
-    <div className="tab-content">
-      <div className="section-card">
-        <div className="section-header"><span>🔑 API key de Anthropic</span></div>
-        <p className="hint-text">Se guarda solo en este teléfono, en tu navegador. Solo se usa para llamar a la API de Anthropic al analizar comida, báscula o Apple Watch.</p>
-        <div className="action-row">
-          <input type={showKey ? 'text' : 'password'} value={apiKey} onChange={e => setApiKey(e.target.value)} placeholder="sk-ant-..." className="key-input" />
-          <button className="btn-ghost" type="button" onClick={() => setShowKey(!showKey)}>{showKey ? 'Ocultar' : 'Ver'}</button>
-        </div>
-      </div>
-
-      <div className="section-card">
-        <div className="section-header"><span>📅 Plan y fechas</span></div>
-        <form onSubmit={savePlan} className="plan-form">
-          <label>Inicio del plan<input type="date" value={planForm.startDate} onChange={e => setPlanForm({ ...planForm, startDate: e.target.value })} /></label>
-          <label>Total de días<input type="number" value={planForm.totalDays} onChange={e => setPlanForm({ ...planForm, totalDays: e.target.value })} /></label>
-          <label>Fase 1 (déficit) termina en día<input type="number" value={planForm.phase1End} onChange={e => setPlanForm({ ...planForm, phase1End: e.target.value })} /></label>
-          <label>Fase 2 (mantenimiento) termina en día<input type="number" value={planForm.phase2End} onChange={e => setPlanForm({ ...planForm, phase2End: e.target.value })} /></label>
-          <label>Fase 3 (carga de carbos) termina en día<input type="number" value={planForm.phase3End} onChange={e => setPlanForm({ ...planForm, phase3End: e.target.value })} /></label>
-          <label>Kcal Fase 1<input type="number" value={planForm.kcal.phase1} onChange={e => setPlanForm({ ...planForm, kcal: { ...planForm.kcal, phase1: e.target.value } })} /></label>
-          <label>Kcal Fase 2<input type="number" value={planForm.kcal.phase2} onChange={e => setPlanForm({ ...planForm, kcal: { ...planForm.kcal, phase2: e.target.value } })} /></label>
-          <label>Kcal Fase 3<input type="number" value={planForm.kcal.phase3} onChange={e => setPlanForm({ ...planForm, kcal: { ...planForm.kcal, phase3: e.target.value } })} /></label>
-          <label>Kcal Fase 4 (día de carrera)<input type="number" value={planForm.kcal.phase4} onChange={e => setPlanForm({ ...planForm, kcal: { ...planForm.kcal, phase4: e.target.value } })} /></label>
-          <button className="btn-primary" type="submit">Guardar plan</button>
-        </form>
-      </div>
-
-      <div className="section-card">
-        <div className="section-header"><span>🍽️ Alimentos frecuentes</span></div>
-        <ul className="food-manage-list">
-          {foods.map(f => (
-            <li key={f.id}><span>{f.name} — {f.kcal} kcal</span><button className="icon-btn" onClick={() => removeFood(f.id)}>✕</button></li>
-          ))}
-        </ul>
-        <form className="manual-form" onSubmit={addFood}>
-          <input placeholder="Nombre" value={newFood.name} onChange={e => setNewFood({ ...newFood, name: e.target.value })} />
-          <div className="manual-grid">
-            <input type="number" placeholder="kcal" value={newFood.kcal} onChange={e => setNewFood({ ...newFood, kcal: e.target.value })} />
-            <input type="number" placeholder="prot g" value={newFood.protein} onChange={e => setNewFood({ ...newFood, protein: e.target.value })} />
-            <input type="number" placeholder="carb g" value={newFood.carbs} onChange={e => setNewFood({ ...newFood, carbs: e.target.value })} />
-            <input type="number" placeholder="grasa g" value={newFood.fat} onChange={e => setNewFood({ ...newFood, fat: e.target.value })} />
-          </div>
-          <button className="btn-primary" type="submit">Agregar alimento</button>
-        </form>
-      </div>
-
-      <div className="section-card">
-        <div className="section-header"><span>💾 Respaldo</span></div>
-        <p className="hint-text">{daysSince === null ? 'Aún no has exportado un respaldo.' : 'Último respaldo hace ' + daysSince + ' día(s).'}</p>
-        <button className="btn-primary" onClick={doExport}>Exportar respaldo</button>
-        {backupText && (
-          <>
-            <p className="hint-text">Copia este texto y guárdalo en Notas:</p>
-            <textarea readOnly className="backup-textarea" value={backupText} onFocus={e => e.target.select()} />
-          </>
-        )}
-        <div className="divider"></div>
-        <p className="hint-text">Restaurar desde un respaldo guardado:</p>
-        <textarea className="backup-textarea" placeholder="Pega aquí el JSON de tu respaldo" value={restoreText} onChange={e => setRestoreText(e.target.value)} />
-        <button className="btn-ghost" onClick={doRestore}>Restaurar</button>
-        {restoreMsg && <div className="hint-text">{restoreMsg}</div>}
-      </div>
-
-      <div className="section-card">
-        <div className="section-header"><span>🛠️ Diagnóstico</span></div>
-        <button className="btn-ghost" type="button" onClick={() => setShowDiag(!showDiag)}>{showDiag ? 'Ocultar' : 'Ver'} datos guardados (JSON)</button>
-        {showDiag && <pre className="diag-pre">{JSON.stringify({ plan, days, performance, foods }, null, 2)}</pre>}
-      </div>
-
-      <div className="section-card danger-card">
-        <div className="section-header"><span>⚠️ Reiniciar</span></div>
-        <button className="btn-danger" onClick={doReset}>Borrar todos los datos</button>
+    <div className="topbar">
+      <div className="brand">HYROX<span>TRACK</span></div>
+      <div className="countdown">
+        {left > 0 ? (<>faltan<b>{left} días</b></>) : left === 0 ? (<b>¡Hoy es el día! 🏁</b>) : (<b>Carrera completada</b>)}
       </div>
     </div>
   );
 }
-
-// ============================================================
-// APP SHELL
-// ============================================================
-function Header({ stats }) {
+const TABS = [
+  { id: "dia", label: "Día", icon: "📅" },
+  { id: "rendimiento", label: "Rendimiento", icon: "🏆" },
+  { id: "progreso", label: "Progreso", icon: "📈" },
+  { id: "datos", label: "Datos", icon: "⚙️" },
+];
+function Tabbar({ tab, setTab }) {
   return (
-    <div className="app-header">
-      <div className="app-title">HYROX ACAPULCO</div>
-      <div className="app-subtitle">Faltan {stats.daysToRace} días · Día {stats.daysElapsed}/{stats.totalDays}</div>
-    </div>
-  );
-}
-function BottomNav({ active, onChange }) {
-  const tabs = [
-    { key: 'dia', label: 'Día', icon: '📅' },
-    { key: 'rendimiento', label: 'Rendimiento', icon: '📈' },
-    { key: 'progreso', label: 'Progreso', icon: '📊' },
-    { key: 'datos', label: 'Datos', icon: '⚙️' },
-  ];
-  return (
-    <nav className="bottom-nav">
-      {tabs.map(t => (
-        <button key={t.key} type="button" className={'nav-btn' + (active === t.key ? ' active' : '')} onClick={() => onChange(t.key)}>
-          <span className="nav-icon">{t.icon}</span>
-          <span className="nav-label">{t.label}</span>
+    <div className="tabbar">
+      {TABS.map((t) => (
+        <button key={t.id} className={"tab-btn" + (tab === t.id ? " active" : "")} onClick={() => setTab(t.id)}>
+          <span className="ic">{t.icon}</span>{t.label}
         </button>
       ))}
-    </nav>
+    </div>
   );
 }
 
-function App() {
-  const [plan, setPlan] = useState(() => loadPlan());
-  const [days, setDays] = useState(() => loadDays());
-  const [performance, setPerformance] = useState(() => loadPerformance());
-  const [foods, setFoods] = useState(() => loadFoods());
-  const [apiKey, setApiKey] = useState(() => safeGet(STORAGE_KEYS.apiKey) || '');
-  const [activeTab, setActiveTab] = useState('dia');
-  const [selectedDay, setSelectedDay] = useState(() => todayDayNumber(loadPlan()));
-  const [lastBackup, setLastBackup] = useState(() => safeGet(STORAGE_KEYS.lastBackup));
+/* =========================================================
+   TAB DÍA
+   ========================================================= */
+function DaySelector({ selectedDay, setSelectedDay, data }) {
+  const today = todayDayNumber();
+  const scrollRef = useRef(null);
+  useEffect(() => {
+    if (scrollRef.current) {
+      const el = scrollRef.current.querySelector('[data-day="' + selectedDay + '"]');
+      if (el && el.scrollIntoView) el.scrollIntoView({ inline: "center", block: "nearest" });
+    }
+    // eslint-disable-next-line
+  }, []);
+  const chips = [];
+  for (let d = 1; d <= TOTAL_DAYS; d++) {
+    const date = dateForDay(d);
+    const dayData = data.days[String(d)];
+    const hasLog = dayData && (dayData.hyroxDone || dayData.pesasDone || dayData.correrDone || (dayData.meals && dayData.meals.length) || dayData.weight);
+    chips.push(
+      <div key={d} data-day={d} className={"day-chip" + (d === selectedDay ? " selected" : "") + (d === today ? " today" : "")} onClick={() => setSelectedDay(d)}>
+        <div className="dnum">{d}</div>
+        <div className="dlabel">{WEEKDAY_NAMES[date.getDay()]}</div>
+        {hasLog && <div className="dot"></div>}
+      </div>
+    );
+  }
+  return <div className="day-scroll" ref={scrollRef}>{chips}</div>;
+}
 
-  useEffect(() => { save(STORAGE_KEYS.plan, plan); }, [plan]);
-  useEffect(() => { save(STORAGE_KEYS.days, days); }, [days]);
-  useEffect(() => { save(STORAGE_KEYS.performance, performance); }, [performance]);
-  useEffect(() => { save(STORAGE_KEYS.foods, foods); }, [foods]);
-  useEffect(() => { try { localStorage.setItem(STORAGE_KEYS.apiKey, apiKey); } catch (e) {} }, [apiKey]);
+function ChecklistCard({ dayNumber, phases, dayData, updateDay }) {
+  const sched = scheduleForDay(dayNumber, phases);
+  const phase = getPhase(phases, dayNumber);
+  const date = dateForDay(dayNumber);
+  const pesasRoutine = sched.pesas === "A" ? ROUTINE_A : sched.pesas === "B" ? ROUTINE_B : sched.pesas === "FULL" ? ROUTINE_FULL : null;
+  return (
+    <div className="card">
+      <div className="card-title">
+        <h3>{WEEKDAY_NAMES_FULL[date.getDay()]} {fmtDateShort(date)}</h3>
+        <span className="pill phase">{phase.name}</span>
+      </div>
+      <ChecklistRow label="🏆 Hyrox / HIIT" meta={sched.hyrox ? "Sesión programada" : "Descanso"}
+        done={dayData.hyroxDone} rpe={dayData.hyroxRpe}
+        onToggle={() => updateDay((d) => ({ ...d, hyroxDone: !d.hyroxDone }))}
+        onRpe={(v) => updateDay((d) => ({ ...d, hyroxRpe: v }))} />
+      {sched.pesas && (
+        <ChecklistRow label="🏋️ Pesas" meta={pesasRoutine.title}
+          done={dayData.pesasDone} rpe={dayData.pesasRpe}
+          onToggle={() => updateDay((d) => ({ ...d, pesasDone: !d.pesasDone }))}
+          onRpe={(v) => updateDay((d) => ({ ...d, pesasRpe: v }))}>
+          <div style={{ padding: "0 4px 8px 40px" }}><ExpandableRoutine routine={pesasRoutine} /></div>
+        </ChecklistRow>
+      )}
+      {sched.correr && (
+        <ChecklistRow label="🏃 Correr Z2" meta={sched.correr + " min"}
+          done={dayData.correrDone} rpe={dayData.correrRpe}
+          onToggle={() => updateDay((d) => ({ ...d, correrDone: !d.correrDone }))}
+          onRpe={(v) => updateDay((d) => ({ ...d, correrRpe: v }))}>
+          <div style={{ padding: "0 4px 8px 40px" }}><ExpandableRoutine routine={{ title: "Zona 2 — " + sched.correr + " min", text: runProtocolText(sched.correr) }} /></div>
+        </ChecklistRow>
+      )}
+      {!sched.hyrox && !sched.pesas && !sched.correr && <div className="empty-state small">Día de descanso 🌙</div>}
+    </div>
+  );
+}
 
-  const stats = useMemo(() => computeStats(plan, days, performance), [plan, days, performance]);
+function MacroSummaryCard({ dayData, phase }) {
+  const totals = (dayData.meals || []).reduce((acc, m) => ({
+    kcal: acc.kcal + (m.kcal || 0), protein: acc.protein + (m.protein || 0), carbs: acc.carbs + (m.carbs || 0), fat: acc.fat + (m.fat || 0),
+  }), { kcal: 0, protein: 0, carbs: 0, fat: 0 });
+  return (
+    <div className="card">
+      <div className="card-title"><h3>Nutrición</h3><span className="pill">{phase.kcal} kcal objetivo</span></div>
+      <div className="kcal-summary"><span className="big">{Math.round(totals.kcal)}</span><span className="of">/ {phase.kcal} kcal</span></div>
+      <MacroBar label="Proteína" value={totals.protein} target={phase.protein} color="var(--green)" />
+      <MacroBar label="Carbos" value={totals.carbs} target={phase.carbs} color="var(--blue)" />
+      <MacroBar label="Grasa" value={totals.fat} target={phase.fat} color="var(--amber)" />
+    </div>
+  );
+}
 
-  function updateDay(dayNum, patch) {
-    setDays(prev => {
-      const iso = dayNumberToISO(plan, dayNum);
-      const existing = (prev && prev[iso]) || { meals: [], checks: {}, rpe: {}, weight: null };
-      return { ...prev, [iso]: { ...existing, ...patch } };
-    });
+function WeightCard({ dayData, updateDay, apiKey }) {
+  const [manualOpen, setManualOpen] = useState(false);
+  const [kg, setKg] = useState(""); const [bf, setBf] = useState(""); const [mu, setMu] = useState(""); const [vis, setVis] = useState(""); const [wa, setWa] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState("");
+
+  function saveManual() {
+    const kgNum = parseFloat(kg);
+    if (!Number.isFinite(kgNum) || kgNum <= 0) { setErr("Ingresa un peso válido"); return; }
+    updateDay((d) => ({ ...d, weight: { kg: kgNum, bodyFatPct: bf ? parseFloat(bf) : null, musclePct: mu ? parseFloat(mu) : null, visceral: vis ? parseFloat(vis) : null, waterPct: wa ? parseFloat(wa) : null, time: new Date().toISOString() } }));
+    setManualOpen(false); setErr(""); setKg(""); setBf(""); setMu(""); setVis(""); setWa("");
+  }
+  async function handlePhoto(e) {
+    const file = e.target.files && e.target.files[0];
+    e.target.value = "";
+    if (!file) return;
+    if (!apiKey) { setErr("Agrega tu API key en Datos primero"); return; }
+    setLoading(true); setErr("");
+    try {
+      const base64 = await fileToBase64(file);
+      const parsed = await aiParseScalePhoto(apiKey, base64, file.type || "image/jpeg");
+      if (!Number.isFinite(parsed.kg)) throw new Error("No se detectó el peso en la foto");
+      updateDay((d) => ({ ...d, weight: { kg: parsed.kg, bodyFatPct: Number.isFinite(parsed.bodyFatPct) ? parsed.bodyFatPct : null, musclePct: Number.isFinite(parsed.musclePct) ? parsed.musclePct : null, visceral: Number.isFinite(parsed.visceral) ? parsed.visceral : null, waterPct: Number.isFinite(parsed.waterPct) ? parsed.waterPct : null, time: new Date().toISOString() } }));
+    } catch (e2) { setErr("No se pudo leer la foto: " + e2.message); }
+    finally { setLoading(false); }
   }
 
-  const daysSinceBackup = lastBackup ? Math.floor((Date.now() - new Date(lastBackup).getTime()) / 86400000) : Infinity;
+  return (
+    <div className="card">
+      <div className="card-title"><h3>⚖️ Peso corporal</h3></div>
+      {dayData.weight ? (
+        <div className="grid-4" style={{ marginBottom: 10 }}>
+          <div className="stat-box"><div className="sv" style={{ fontSize: 20 }}>{dayData.weight.kg}</div><div className="sl">kg</div></div>
+          <div className="stat-box"><div className="sv" style={{ fontSize: 20 }}>{dayData.weight.bodyFatPct ?? "—"}</div><div className="sl">% grasa</div></div>
+          <div className="stat-box"><div className="sv" style={{ fontSize: 20 }}>{dayData.weight.musclePct ?? "—"}</div><div className="sl">% músculo</div></div>
+          <div className="stat-box"><div className="sv" style={{ fontSize: 20 }}>{dayData.weight.visceral ?? "—"}</div><div className="sl">visceral</div></div>
+        </div>
+      ) : (<div className="empty-state small" style={{ padding: "14px 10px" }}>Sin registro este día</div>)}
+      {err && <div className="small" style={{ color: "var(--coral)", marginBottom: 8 }}>{err}</div>}
+      <div className="btn-row">
+        <button className="btn" onClick={() => setManualOpen((o) => !o)}>✍️ Manual</button>
+        <label className="btn btn-secondary file-btn">{loading ? <span className="loading-dot"></span> : "📷 Foto báscula (IA)"}
+          <input type="file" accept="image/*" onChange={handlePhoto} disabled={loading} />
+        </label>
+      </div>
+      {manualOpen && (
+        <div style={{ marginTop: 10 }}>
+          <div className="grid-2">
+            <div><label className="field-label">Peso (kg)</label><input type="number" inputMode="decimal" value={kg} onChange={(e) => setKg(e.target.value)} /></div>
+            <div><label className="field-label">% grasa</label><input type="number" inputMode="decimal" value={bf} onChange={(e) => setBf(e.target.value)} /></div>
+            <div><label className="field-label">% músculo</label><input type="number" inputMode="decimal" value={mu} onChange={(e) => setMu(e.target.value)} /></div>
+            <div><label className="field-label">Visceral</label><input type="number" inputMode="decimal" value={vis} onChange={(e) => setVis(e.target.value)} /></div>
+          </div>
+          <label className="field-label">% agua</label><input type="number" inputMode="decimal" value={wa} onChange={(e) => setWa(e.target.value)} />
+          <button className="btn btn-primary" style={{ marginTop: 10 }} onClick={saveManual}>Guardar</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MealsCard({ dayData, updateDay, apiKey, frequentFoods, addFrequent }) {
+  const [textInput, setTextInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState("");
+  const [manualOpen, setManualOpen] = useState(false);
+  const [mName, setMName] = useState(""); const [mKcal, setMKcal] = useState(""); const [mP, setMP] = useState(""); const [mC, setMC] = useState(""); const [mF, setMF] = useState("");
+
+  function addMeal(meal) { updateDay((d) => ({ ...d, meals: [...(d.meals || []), { ...meal, id: "m" + Date.now() + Math.random().toString(36).slice(2), time: new Date().toISOString() }] })); }
+  function removeMeal(id) { updateDay((d) => ({ ...d, meals: (d.meals || []).filter((m) => m.id !== id) })); }
+  function addFromChip(f) { addMeal({ name: f.name, kcal: f.kcal, protein: f.protein, carbs: f.carbs, fat: f.fat, source: "frecuente" }); }
+  function saveManual() {
+    const kcalNum = parseFloat(mKcal);
+    if (!mName.trim() || !Number.isFinite(kcalNum)) { setErr("Nombre y kcal son obligatorios"); return; }
+    const meal = { name: mName.trim(), kcal: kcalNum, protein: parseFloat(mP) || 0, carbs: parseFloat(mC) || 0, fat: parseFloat(mF) || 0, source: "manual" };
+    addMeal(meal); addFrequent(meal);
+    setMName(""); setMKcal(""); setMP(""); setMC(""); setMF(""); setManualOpen(false); setErr("");
+  }
+  async function analyzeText() {
+    if (!textInput.trim()) return;
+    if (!apiKey) { setErr("Agrega tu API key en Datos primero"); return; }
+    setLoading(true); setErr("");
+    try {
+      const parsed = await aiParseMealText(apiKey, textInput);
+      const meal = { name: parsed.name || textInput.slice(0, 30), kcal: parsed.kcal || 0, protein: parsed.protein || 0, carbs: parsed.carbs || 0, fat: parsed.fat || 0, source: "ia-texto" };
+      addMeal(meal); addFrequent(meal); setTextInput("");
+    } catch (e) { setErr("No se pudo analizar: " + e.message); }
+    finally { setLoading(false); }
+  }
+  async function handlePhoto(e) {
+    const file = e.target.files && e.target.files[0];
+    e.target.value = "";
+    if (!file) return;
+    if (!apiKey) { setErr("Agrega tu API key en Datos primero"); return; }
+    setLoading(true); setErr("");
+    try {
+      const base64 = await fileToBase64(file);
+      const parsed = await aiParseMealPhoto(apiKey, base64, file.type || "image/jpeg");
+      const meal = { name: parsed.name || "Platillo", kcal: parsed.kcal || 0, protein: parsed.protein || 0, carbs: parsed.carbs || 0, fat: parsed.fat || 0, source: "ia-foto" };
+      addMeal(meal); addFrequent(meal);
+    } catch (e2) { setErr("No se pudo analizar la foto: " + e2.message); }
+    finally { setLoading(false); }
+  }
+
+  return (
+    <div className="card">
+      <div className="card-title"><h3>🍽️ Comidas</h3></div>
+      {frequentFoods.length > 0 && (
+        <div className="chip-row">{frequentFoods.slice(0, 10).map((f) => (<button key={f.id} className="food-chip" onClick={() => addFromChip(f)}>+ {f.name}</button>))}</div>
+      )}
+      <div className="btn-row" style={{ marginBottom: 8 }}>
+        <button className="btn" onClick={() => setManualOpen((o) => !o)}>✍️ Manual</button>
+        <label className="btn btn-secondary file-btn">{loading ? <span className="loading-dot"></span> : "📷 Foto (IA)"}
+          <input type="file" accept="image/*" onChange={handlePhoto} disabled={loading} />
+        </label>
+      </div>
+      <div className="seg-row">
+        <input type="text" placeholder="Describe la comida (texto → IA)" value={textInput} onChange={(e) => setTextInput(e.target.value)} />
+        <button className="btn btn-secondary" style={{ width: "auto", padding: "10px 14px" }} onClick={analyzeText} disabled={loading}>➤</button>
+      </div>
+      {err && <div className="small" style={{ color: "var(--coral)", marginBottom: 6 }}>{err}</div>}
+      {manualOpen && (
+        <div style={{ marginBottom: 10 }}>
+          <label className="field-label">Nombre</label><input type="text" value={mName} onChange={(e) => setMName(e.target.value)} />
+          <div className="grid-3" style={{ marginTop: 8 }}>
+            <div><label className="field-label">Kcal</label><input type="number" inputMode="decimal" value={mKcal} onChange={(e) => setMKcal(e.target.value)} /></div>
+            <div><label className="field-label">Prot g</label><input type="number" inputMode="decimal" value={mP} onChange={(e) => setMP(e.target.value)} /></div>
+            <div><label className="field-label">Carb g</label><input type="number" inputMode="decimal" value={mC} onChange={(e) => setMC(e.target.value)} /></div>
+          </div>
+          <label className="field-label">Grasa g</label><input type="number" inputMode="decimal" value={mF} onChange={(e) => setMF(e.target.value)} />
+          <button className="btn btn-primary" style={{ marginTop: 10 }} onClick={saveManual}>Agregar</button>
+        </div>
+      )}
+      <div className="divider"></div>
+      {(dayData.meals || []).length === 0 ? (<div className="empty-state small">Sin comidas registradas hoy</div>) : (
+        (dayData.meals || []).map((m) => (
+          <div key={m.id} className="food-item">
+            <div><div className="fi-name">{m.name}</div><div className="fi-macro">{Math.round(m.kcal)} kcal · P{Math.round(m.protein)} C{Math.round(m.carbs)} G{Math.round(m.fat)}</div></div>
+            <button className="fi-del" onClick={() => removeMeal(m.id)}>✕</button>
+          </div>
+        ))
+      )}
+    </div>
+  );
+}
+
+function TabDia({ data, update, phases, selectedDay, setSelectedDay }) {
+  const dayKey = String(selectedDay);
+  const dayData = data.days[dayKey] || emptyDay();
+  const phase = getPhase(phases, selectedDay);
+
+  function updateDay(fn) {
+    update((prev) => {
+      const current = prev.days[dayKey] || emptyDay();
+      const next = fn(current);
+      return { ...prev, days: { ...prev.days, [dayKey]: next } };
+    });
+  }
+  function addFrequent(meal) {
+    update((prev) => {
+      const exists = prev.frequentFoods.some((f) => f.name.toLowerCase() === meal.name.toLowerCase());
+      if (exists) return prev;
+      const nf = { id: "ff" + Date.now(), name: meal.name, kcal: meal.kcal, protein: meal.protein, carbs: meal.carbs, fat: meal.fat };
+      return { ...prev, frequentFoods: [nf, ...prev.frequentFoods].slice(0, 30) };
+    });
+  }
+  return (
+    <div>
+      <DaySelector selectedDay={selectedDay} setSelectedDay={setSelectedDay} data={data} />
+      <ChecklistCard dayNumber={selectedDay} phases={phases} dayData={dayData} updateDay={updateDay} />
+      <MacroSummaryCard dayData={dayData} phase={phase} />
+      <WeightCard dayData={dayData} updateDay={updateDay} apiKey={data.apiKey} />
+      <MealsCard dayData={dayData} updateDay={updateDay} apiKey={data.apiKey} frequentFoods={data.frequentFoods} addFrequent={addFrequent} />
+    </div>
+  );
+}
+
+/* =========================================================
+   TAB RENDIMIENTO
+   ========================================================= */
+function PerfForm({ kind, onAdd, apiKey, selectedDay }) {
+  const [open, setOpen] = useState(false);
+  const [duration, setDuration] = useState(""); const [hrAvg, setHrAvg] = useState(""); const [hrMax, setHrMax] = useState("");
+  const [rpe, setRpe] = useState(null); const [notes, setNotes] = useState("");
+  const [segments, setSegments] = useState([{ label: "", value: "" }]);
+  const [subType, setSubType] = useState("running");
+  const [loading, setLoading] = useState(false); const [err, setErr] = useState("");
+
+  function updateSeg(i, key, val) { setSegments((s) => s.map((seg, idx) => (idx === i ? { ...seg, [key]: val } : seg))); }
+  function addSegRow() { setSegments((s) => [...s, { label: "", value: "" }]); }
+  function removeSegRow(i) { setSegments((s) => s.filter((_, idx) => idx !== i)); }
+  function reset() { setDuration(""); setHrAvg(""); setHrMax(""); setRpe(null); setNotes(""); setSegments([{ label: "", value: "" }]); setOpen(false); }
+  function save() {
+    const durNum = parseFloat(duration);
+    if (!Number.isFinite(durNum)) { setErr("Ingresa la duración"); return; }
+    onAdd({
+      type: kind === "hyrox" ? "hyrox" : subType,
+      durationMin: durNum,
+      hrAvg: hrAvg ? parseFloat(hrAvg) : null,
+      hrMax: hrMax ? parseFloat(hrMax) : null,
+      rpe, notes,
+      segments: segments.filter((s) => s.label.trim() || s.value.trim()),
+      dayNumber: selectedDay,
+      date: new Date().toISOString(),
+    });
+    reset(); setErr("");
+  }
+  async function handlePhoto(e) {
+    const file = e.target.files && e.target.files[0];
+    e.target.value = "";
+    if (!file) return;
+    if (!apiKey) { setErr("Agrega tu API key en Datos primero"); return; }
+    setLoading(true); setErr("");
+    try {
+      const base64 = await fileToBase64(file);
+      const parsed = await aiParseWatchPhoto(apiKey, base64, file.type || "image/jpeg");
+      if (Number.isFinite(parsed.durationMin)) setDuration(String(parsed.durationMin));
+      if (Number.isFinite(parsed.hrAvg)) setHrAvg(String(parsed.hrAvg));
+      if (Number.isFinite(parsed.hrMax)) setHrMax(String(parsed.hrMax));
+      setOpen(true);
+    } catch (e2) { setErr("No se pudo leer la foto: " + e2.message); }
+    finally { setLoading(false); }
+  }
+
+  return (
+    <div>
+      <div className="btn-row" style={{ marginBottom: 8 }}>
+        <button className="btn btn-primary" onClick={() => setOpen((o) => !o)}>{open ? "Cancelar" : "+ Agregar"}</button>
+        <label className="btn btn-secondary file-btn">{loading ? <span className="loading-dot"></span> : "⌚ Foto Watch (IA)"}
+          <input type="file" accept="image/*" onChange={handlePhoto} disabled={loading} />
+        </label>
+      </div>
+      {err && <div className="small" style={{ color: "var(--coral)", marginBottom: 6 }}>{err}</div>}
+      {open && (
+        <div style={{ marginBottom: 12 }}>
+          {kind === "secondary" && (
+            <div className="btn-row" style={{ marginBottom: 8 }}>
+              <button className={"btn" + (subType === "running" ? " btn-secondary" : "")} onClick={() => setSubType("running")}>🏃 Correr</button>
+              <button className={"btn" + (subType === "pesas" ? " btn-secondary" : "")} onClick={() => setSubType("pesas")}>🏋️ Pesas</button>
+            </div>
+          )}
+          <div className="grid-3">
+            <div><label className="field-label">Duración (min)</label><input type="number" inputMode="decimal" value={duration} onChange={(e) => setDuration(e.target.value)} /></div>
+            <div><label className="field-label">FC prom</label><input type="number" inputMode="decimal" value={hrAvg} onChange={(e) => setHrAvg(e.target.value)} /></div>
+            <div><label className="field-label">FC máx</label><input type="number" inputMode="decimal" value={hrMax} onChange={(e) => setHrMax(e.target.value)} /></div>
+          </div>
+          <label className="field-label">RPE</label>
+          <RpeSelect value={rpe} onChange={setRpe} />
+          <label className="field-label">Segmentos (splits / estaciones / pesos)</label>
+          {segments.map((s, i) => (
+            <div className="seg-row" key={i}>
+              <input type="text" placeholder="Nombre" value={s.label} onChange={(e) => updateSeg(i, "label", e.target.value)} />
+              <input type="text" placeholder="Valor" value={s.value} onChange={(e) => updateSeg(i, "value", e.target.value)} />
+              <button className="fi-del" onClick={() => removeSegRow(i)}>✕</button>
+            </div>
+          ))}
+          <button className="link-btn" onClick={addSegRow}>+ Agregar segmento</button>
+          <label className="field-label">Notas</label>
+          <textarea value={notes} onChange={(e) => setNotes(e.target.value)} />
+          <button className="btn btn-primary" style={{ marginTop: 10 }} onClick={save}>Guardar</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PerfHistory({ entries }) {
+  if (!entries.length) return <div className="empty-state small">Sin registros aún</div>;
+  const sorted = [...entries].sort((a, b) => (b.dayNumber || 0) - (a.dayNumber || 0));
+  return (
+    <div>
+      {sorted.map((e) => (
+        <div key={e.id} className="history-item">
+          <div className="hi-top">
+            <span>{e.type === "hyrox" ? "🏆 Hyrox" : e.type === "pesas" ? "🏋️ Pesas" : "🏃 Correr"} · Día {e.dayNumber}</span>
+            <span>{e.durationMin} min</span>
+          </div>
+          <div className="hi-meta">{e.hrAvg ? "FC prom " + e.hrAvg + " · " : ""}{e.hrMax ? "FC máx " + e.hrMax + " · " : ""}{e.rpe ? "RPE " + e.rpe : ""}</div>
+          {e.segments && e.segments.length > 0 && <div className="hi-meta">{e.segments.map((s) => s.label + ": " + s.value).join(" · ")}</div>}
+          {e.notes && <div className="hi-meta">{e.notes}</div>}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function TabRendimiento({ data, update, selectedDay }) {
+  function addEntry(kind, entry) {
+    update((prev) => {
+      const withId = { ...entry, id: "p" + Date.now() + Math.random().toString(36).slice(2) };
+      const key = kind === "hyrox" ? "hyrox" : "secondary";
+      return { ...prev, performance: { ...prev.performance, [key]: [...prev.performance[key], withId] } };
+    });
+  }
+  return (
+    <div>
+      <div className="card">
+        <div className="card-title"><h3>🏆 Hyrox</h3></div>
+        <PerfForm kind="hyrox" onAdd={(e) => addEntry("hyrox", e)} apiKey={data.apiKey} selectedDay={selectedDay} />
+        <div className="divider"></div>
+        <PerfHistory entries={data.performance.hyrox} />
+      </div>
+      <div className="card">
+        <div className="card-title"><h3>🏋️🏃 Running / Pesas</h3></div>
+        <PerfForm kind="secondary" onAdd={(e) => addEntry("secondary", e)} apiKey={data.apiKey} selectedDay={selectedDay} />
+        <div className="divider"></div>
+        <PerfHistory entries={data.performance.secondary} />
+      </div>
+    </div>
+  );
+}
+
+/* =========================================================
+   TAB PROGRESO
+   ========================================================= */
+function computeStats(data, phases) {
+  const today = clip(todayDayNumber(), 1, TOTAL_DAYS);
+  let scheduled = 0, done = 0, rpeSum = 0, rpeCount = 0;
+  for (let d = 1; d <= today; d++) {
+    const sched = scheduleForDay(d, phases);
+    const dd = data.days[String(d)];
+    if (sched.hyrox) { scheduled++; if (dd && dd.hyroxDone) done++; if (dd && dd.hyroxRpe) { rpeSum += dd.hyroxRpe; rpeCount++; } }
+    if (sched.pesas) { scheduled++; if (dd && dd.pesasDone) done++; if (dd && dd.pesasRpe) { rpeSum += dd.pesasRpe; rpeCount++; } }
+    if (sched.correr) { scheduled++; if (dd && dd.correrDone) done++; if (dd && dd.correrRpe) { rpeSum += dd.correrRpe; rpeCount++; } }
+  }
+  return { adherencePct: scheduled > 0 ? Math.round((done / scheduled) * 100) : 0, avgRpe: rpeCount > 0 ? (rpeSum / rpeCount).toFixed(1) : "—", daysElapsed: today };
+}
+function buildWeightSeries(data, field) {
+  const pts = [];
+  for (let d = 1; d <= TOTAL_DAYS; d++) {
+    const dd = data.days[String(d)];
+    if (dd && dd.weight && Number.isFinite(dd.weight[field])) pts.push({ x: d, y: dd.weight[field] });
+  }
+  return pts;
+}
+function buildKcalSeries(data, phases) {
+  const actual = [], target = [];
+  for (let d = 1; d <= TOTAL_DAYS; d++) {
+    const dd = data.days[String(d)];
+    const phase = getPhase(phases, d);
+    target.push({ x: d, y: phase.kcal });
+    if (dd && dd.meals && dd.meals.length) { const sum = dd.meals.reduce((a, m) => a + (m.kcal || 0), 0); actual.push({ x: d, y: sum }); }
+  }
+  return { actual, target };
+}
+function buildHrSeries(data) {
+  const byDay = {};
+  [...data.performance.hyrox, ...data.performance.secondary].forEach((e) => {
+    if (Number.isFinite(e.hrAvg) && Number.isFinite(e.dayNumber)) { if (!byDay[e.dayNumber]) byDay[e.dayNumber] = []; byDay[e.dayNumber].push(e.hrAvg); }
+  });
+  return Object.keys(byDay).map((k) => ({ x: parseInt(k, 10), y: byDay[k].reduce((a, b) => a + b, 0) / byDay[k].length })).sort((a, b) => a.x - b.x);
+}
+function LineChart({ points, color, height, targetPoints }) {
+  const width = 320; const h = height || 120; const pad = 8;
+  const hasPoints = points && points.length > 0;
+  const hasTarget = targetPoints && targetPoints.length > 0;
+  if (!hasPoints && !hasTarget) return <div className="empty-state small">Aún no hay datos suficientes</div>;
+  const allPts = (hasPoints ? points : []).concat(hasTarget ? targetPoints : []);
+  const xs = allPts.map((p) => p.x); const ys = allPts.map((p) => p.y);
+  const minX = Math.min(...xs), maxX = Math.max(...xs);
+  const minY = Math.min(...ys), maxY = Math.max(...ys);
+  const rangeX = (maxX - minX) || 1, rangeY = (maxY - minY) || 1;
+  function sx(x) { return pad + (width - 2 * pad) * ((x - minX) / rangeX); }
+  function sy(y) { return h - pad - (h - 2 * pad) * ((y - minY) / rangeY); }
+  const path = hasPoints ? points.map((p, i) => (i === 0 ? "M" : "L") + sx(p.x).toFixed(1) + "," + sy(p.y).toFixed(1)).join(" ") : null;
+  const targetPath = hasTarget ? targetPoints.map((p, i) => (i === 0 ? "M" : "L") + sx(p.x).toFixed(1) + "," + sy(p.y).toFixed(1)).join(" ") : null;
+  const last = hasPoints ? points[points.length - 1] : null;
+  return (
+    <svg viewBox={"0 0 " + width + " " + h} style={{ width: "100%", height: h }} preserveAspectRatio="none">
+      {targetPath && <path d={targetPath} fill="none" stroke={COLOR.faint} strokeWidth="1.5" strokeDasharray="4,3" />}
+      {path && <path d={path} fill="none" stroke={color} strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />}
+      {last && <circle cx={sx(last.x)} cy={sy(last.y)} r="3.5" fill={color} />}
+    </svg>
+  );
+}
+function ChartCard({ title, unit, points, color, targetPoints }) {
+  return (
+    <div className="card">
+      <div className="card-title"><h3 style={{ fontSize: 16 }}>{title}</h3>{points.length > 0 && <span className="pill">{points[points.length - 1].y.toFixed(1)} {unit}</span>}</div>
+      <LineChart points={points} color={color} targetPoints={targetPoints} />
+    </div>
+  );
+}
+function TabProgreso({ data, phases }) {
+  const stats = useMemo(() => computeStats(data, phases), [data, phases]);
+  const weightSeries = useMemo(() => buildWeightSeries(data, "kg"), [data]);
+  const fatSeries = useMemo(() => buildWeightSeries(data, "bodyFatPct"), [data]);
+  const kcalSeries = useMemo(() => buildKcalSeries(data, phases), [data, phases]);
+  const hrSeries = useMemo(() => buildHrSeries(data), [data]);
+  return (
+    <div>
+      <div className="card">
+        <div className="stat-grid">
+          <div className="stat-box"><div className="sv">{stats.adherencePct}%</div><div className="sl">Adherencia</div></div>
+          <div className="stat-box"><div className="sv">{stats.avgRpe}</div><div className="sl">RPE prom.</div></div>
+          <div className="stat-box"><div className="sv">{stats.daysElapsed}/{TOTAL_DAYS}</div><div className="sl">Días</div></div>
+        </div>
+      </div>
+      <ChartCard title="Peso" unit="kg" points={weightSeries} color={COLOR.coral} />
+      <ChartCard title="% Grasa corporal" unit="%" points={fatSeries} color={COLOR.amber} />
+      <ChartCard title="Kcal real vs objetivo" unit="kcal" points={kcalSeries.actual} targetPoints={kcalSeries.target} color={COLOR.blue} />
+      <ChartCard title="FC promedio entrenamientos" unit="bpm" points={hrSeries} color={COLOR.teal} />
+    </div>
+  );
+}
+
+/* =========================================================
+   TAB DATOS
+   ========================================================= */
+function TabDatos({ data, update, setData }) {
+  const [apiKeyInput, setApiKeyInput] = useState(data.apiKey || "");
+  const [newFoodName, setNewFoodName] = useState(""); const [newFoodKcal, setNewFoodKcal] = useState("");
+  const [newFoodP, setNewFoodP] = useState(""); const [newFoodC, setNewFoodC] = useState(""); const [newFoodF, setNewFoodF] = useState("");
+  const [exportText, setExportText] = useState("");
+  const [importText, setImportText] = useState("");
+  const [msg, setMsg] = useState("");
+  const [resetArmed, setResetArmed] = useState(false);
+
+  function saveApiKey() { update((prev) => ({ ...prev, apiKey: apiKeyInput.trim() })); setMsg("API key guardada"); setTimeout(() => setMsg(""), 2000); }
+  function addFood() {
+    const kcalNum = parseFloat(newFoodKcal);
+    if (!newFoodName.trim() || !Number.isFinite(kcalNum)) return;
+    update((prev) => ({ ...prev, frequentFoods: [{ id: "ff" + Date.now(), name: newFoodName.trim(), kcal: kcalNum, protein: parseFloat(newFoodP) || 0, carbs: parseFloat(newFoodC) || 0, fat: parseFloat(newFoodF) || 0 }, ...prev.frequentFoods] }));
+    setNewFoodName(""); setNewFoodKcal(""); setNewFoodP(""); setNewFoodC(""); setNewFoodF("");
+  }
+  function removeFood(id) { update((prev) => ({ ...prev, frequentFoods: prev.frequentFoods.filter((f) => f.id !== id) })); }
+  function updatePhaseField(id, field, val) { update((prev) => ({ ...prev, plan: { ...prev.plan, phases: prev.plan.phases.map((p) => (p.id === id ? { ...p, [field]: parseFloat(val) || 0 } : p)) } })); }
+  function doExport() { const text = JSON.stringify(data); setExportText(text); update((prev) => ({ ...prev, lastExportAt: new Date().toISOString() })); }
+  function doImport() {
+    try { const parsed = JSON.parse(importText); setData(sanitizeData(parsed)); setMsg("Datos restaurados"); setImportText(""); }
+    catch (e) { setMsg("JSON inválido: " + e.message); }
+  }
+  function doReset() {
+    if (!resetArmed) { setResetArmed(true); setTimeout(() => setResetArmed(false), 4000); return; }
+    setData(emptyData()); setResetArmed(false); setMsg("Datos reiniciados");
+  }
+
+  return (
+    <div>
+      <div className="card">
+        <div className="card-title"><h3>🔑 API key</h3></div>
+        <p className="small muted">Se usa para el cálculo de macros por IA y lectura de fotos. Se guarda solo en este dispositivo.</p>
+        <input type="password" placeholder="sk-ant-..." value={apiKeyInput} onChange={(e) => setApiKeyInput(e.target.value)} />
+        <button className="btn btn-primary" style={{ marginTop: 8 }} onClick={saveApiKey}>Guardar</button>
+      </div>
+
+      <div className="card">
+        <div className="card-title"><h3>🍽️ Alimentos frecuentes</h3></div>
+        <label className="field-label">Nombre</label>
+        <input type="text" value={newFoodName} onChange={(e) => setNewFoodName(e.target.value)} />
+        <div className="grid-3" style={{ marginTop: 8 }}>
+          <div><label className="field-label">Kcal</label><input type="number" inputMode="decimal" value={newFoodKcal} onChange={(e) => setNewFoodKcal(e.target.value)} /></div>
+          <div><label className="field-label">Prot</label><input type="number" inputMode="decimal" value={newFoodP} onChange={(e) => setNewFoodP(e.target.value)} /></div>
+          <div><label className="field-label">Carb</label><input type="number" inputMode="decimal" value={newFoodC} onChange={(e) => setNewFoodC(e.target.value)} /></div>
+        </div>
+        <label className="field-label">Grasa</label><input type="number" inputMode="decimal" value={newFoodF} onChange={(e) => setNewFoodF(e.target.value)} />
+        <button className="btn btn-secondary" style={{ marginTop: 8 }} onClick={addFood}>+ Agregar</button>
+        <div className="divider"></div>
+        {data.frequentFoods.map((f) => (
+          <div key={f.id} className="food-item">
+            <div><div className="fi-name">{f.name}</div><div className="fi-macro">{f.kcal} kcal · P{f.protein} C{f.carbs} G{f.fat}</div></div>
+            <button className="fi-del" onClick={() => removeFood(f.id)}>✕</button>
+          </div>
+        ))}
+      </div>
+
+      <div className="card">
+        <div className="card-title"><h3>📋 Plan por fase</h3></div>
+        {data.plan.phases.map((p) => (
+          <div key={p.id} style={{ marginBottom: 12 }}>
+            <div className="row-between" style={{ marginBottom: 4 }}><b className="small">{p.name}</b><span className="small muted">Días {p.startDay}–{p.endDay}</span></div>
+            <div className="grid-4">
+              <div><label className="field-label">Kcal</label><input type="number" value={p.kcal} onChange={(e) => updatePhaseField(p.id, "kcal", e.target.value)} /></div>
+              <div><label className="field-label">Prot g</label><input type="number" value={p.protein} onChange={(e) => updatePhaseField(p.id, "protein", e.target.value)} /></div>
+              <div><label className="field-label">Carb g</label><input type="number" value={p.carbs} onChange={(e) => updatePhaseField(p.id, "carbs", e.target.value)} /></div>
+              <div><label className="field-label">Grasa g</label><input type="number" value={p.fat} onChange={(e) => updatePhaseField(p.id, "fat", e.target.value)} /></div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="card">
+        <div className="card-title"><h3>💾 Respaldo</h3></div>
+        <p className="small muted">Exporta y pega el texto en Notas. Si algo se borra en el dispositivo, lo restauras pegándolo aquí.</p>
+        <button className="btn btn-secondary" onClick={doExport}>Exportar respaldo</button>
+        {exportText && <textarea readOnly value={exportText} style={{ marginTop: 8, minHeight: 100, fontSize: 11 }} onFocus={(e) => e.target.select()} />}
+        <div className="divider"></div>
+        <label className="field-label">Restaurar desde respaldo</label>
+        <textarea value={importText} onChange={(e) => setImportText(e.target.value)} placeholder="Pega aquí el JSON exportado" />
+        <button className="btn btn-secondary" style={{ marginTop: 8 }} onClick={doImport} disabled={!importText.trim()}>Restaurar</button>
+      </div>
+
+      {msg && <div className="banner">{msg}</div>}
+
+      <div className="card">
+        <div className="card-title"><h3>⚠️ Zona de riesgo</h3></div>
+        <p className="small muted">Borra todo el progreso guardado en este dispositivo. Exporta un respaldo antes si no estás seguro.</p>
+        <button className="btn btn-danger" onClick={doReset}>{resetArmed ? "Toca de nuevo para confirmar" : "🔄 Reiniciar datos"}</button>
+      </div>
+    </div>
+  );
+}
+
+/* =========================================================
+   APP RAÍZ
+   ========================================================= */
+function App() {
+  const [data, setData] = useState(() => loadData());
+  const [tab, setTab] = useState("dia");
+  const [selectedDay, setSelectedDay] = useState(() => clip(todayDayNumber(), 1, TOTAL_DAYS));
+  const [saveError, setSaveError] = useState(false);
+
+  useEffect(() => { setSaveError(!saveData(data)); }, [data]);
+
+  const update = useCallback((fn) => { setData((prev) => (typeof fn === "function" ? fn(prev) : fn)); }, []);
+
+  const phases = data.plan.phases;
+  const daysSinceExport = useMemo(() => {
+    if (!data.lastExportAt) return null;
+    return Math.floor((Date.now() - new Date(data.lastExportAt).getTime()) / 86400000);
+  }, [data.lastExportAt]);
+  const showBackupBanner = daysSinceExport === null ? todayDayNumber() > 3 : daysSinceExport > 3;
+  const showApiKeyBanner = !data.apiKey;
 
   return (
     <div className="app-shell">
-      <Header stats={stats} />
-      {daysSinceBackup > 3 && (
-        <button type="button" className="backup-banner" onClick={() => setActiveTab('datos')}>
-          ⚠️ No has respaldado tus datos {daysSinceBackup === Infinity ? 'nunca' : 'en ' + daysSinceBackup + ' días'}. Toca aquí para exportar.
-        </button>
+      <TopBar />
+      {showApiKeyBanner && (
+        <div className="banner">⚠️ Agrega tu API key en <b>Datos</b> para usar cálculo por IA y fotos.<button onClick={() => setTab("datos")}>Ir</button></div>
       )}
-      <ErrorBoundary key={activeTab}>
-        <main className="app-main">
-          {activeTab === 'dia' && (
-            <DiaTab plan={plan} days={days} updateDay={updateDay} apiKey={apiKey} foods={foods} selectedDay={selectedDay} setSelectedDay={setSelectedDay} />
-          )}
-          {activeTab === 'rendimiento' && (
-            <RendimientoTab performance={performance} setPerformance={setPerformance} apiKey={apiKey} />
-          )}
-          {activeTab === 'progreso' && (
-            <ProgresoTab plan={plan} days={days} performance={performance} />
-          )}
-          {activeTab === 'datos' && (
-            <DatosTab apiKey={apiKey} setApiKey={setApiKey} foods={foods} setFoods={setFoods} plan={plan} setPlan={setPlan}
-              days={days} performance={performance} lastBackup={lastBackup} setLastBackup={setLastBackup} />
-          )}
-        </main>
+      {showBackupBanner && (
+        <div className="banner">🗂️ Llevas {daysSinceExport === null ? "varios" : daysSinceExport} días sin exportar respaldo.<button onClick={() => setTab("datos")}>Exportar</button></div>
+      )}
+      {saveError && <div className="banner err">⚠️ No se pudo guardar en este dispositivo (memoria llena o modo privado).</div>}
+      <ErrorBoundary key={tab}>
+        {tab === "dia" && <TabDia data={data} update={update} phases={phases} selectedDay={selectedDay} setSelectedDay={setSelectedDay} />}
+        {tab === "rendimiento" && <TabRendimiento data={data} update={update} selectedDay={selectedDay} />}
+        {tab === "progreso" && <TabProgreso data={data} phases={phases} />}
+        {tab === "datos" && <TabDatos data={data} update={update} setData={setData} />}
       </ErrorBoundary>
-      <BottomNav active={activeTab} onChange={setActiveTab} />
+      <Tabbar tab={tab} setTab={setTab} />
     </div>
   );
 }
 
-const rootEl = document.getElementById('root');
-const root = ReactDOM.createRoot(rootEl);
-root.render(<ErrorBoundary><App /></ErrorBoundary>);
+/* =========================================================
+   MONTAJE
+   ========================================================= */
+window.addEventListener("error", function (e) { console.error("Error global:", e.error || e.message); });
+window.addEventListener("unhandledrejection", function (e) { console.error("Promesa no manejada:", e.reason); });
+
+const __rootEl = document.getElementById("root");
+const __root = ReactDOM.createRoot(__rootEl);
+__root.render(
+  <ErrorBoundary>
+    <App />
+  </ErrorBoundary>
+);
+
 </script>
 
 <script>
 (function () {
   function showFatalError(err) {
-    var root = document.getElementById('root');
-    root.innerHTML =
-      '<div style="padding:40px 20px;color:#F2F1ED;font-family:sans-serif;">' +
-      '<div style="color:#FF5A36;font-weight:700;margin-bottom:8px;">No se pudo cargar la app</div>' +
-      '<div style="color:#9A9DA6;font-size:13px;line-height:1.5;margin-bottom:10px;">Revisa tu conexión a internet (esta página necesita cargar React y Babel desde una CDN la primera vez) y recarga la página.</div>' +
-      '<pre style="background:#1C1F24;padding:10px;border-radius:8px;font-size:11px;color:#9A9DA6;overflow:auto;">' +
-      String(err && err.message || err) + '</pre></div>';
+    var msg = (err && err.message) ? err.message : String(err);
+    msg = msg.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    var el = document.getElementById("root");
+    if (el) {
+      el.innerHTML =
+        '<div style="padding:50px 20px;text-align:center;color:#F2F3F5;font-family:system-ui,sans-serif;">' +
+        '<h2 style="color:#FF4B3E;margin-bottom:10px;">No se pudo cargar HyroxTrack</h2>' +
+        '<p style="color:#9AA1AC;font-size:13px;line-height:1.5;max-width:340px;margin:0 auto 14px;">' + msg + '</p>' +
+        '<p style="color:#5C636E;font-size:12px;">Recarga la página (desliza hacia abajo o usa el botón de recargar de Safari). Si el problema sigue, revisa que tengas conexión a internet para cargar React y Babel.</p>' +
+        '</div>';
+    }
+    if (window.console && console.error) console.error("HyroxTrack — fallo fatal de arranque:", err);
   }
+
   try {
-    var src = document.getElementById('app-source').textContent;
-    var output = Babel.transform(src, { presets: [['react', { runtime: 'classic' }]] }).code;
-    var script = document.createElement('script');
-    script.textContent = output;
-    document.body.appendChild(script);
+    if (!window.React || !window.ReactDOM) {
+      throw new Error("No se pudieron cargar React/ReactDOM (revisa tu conexión a internet).");
+    }
+    if (!window.Babel) {
+      throw new Error("No se pudo cargar Babel (revisa tu conexión a internet).");
+    }
+    var srcEl = document.getElementById("app-source");
+    if (!srcEl) throw new Error("Falta el bloque de código fuente de la app.");
+    var source = srcEl.textContent;
+
+    // IMPORTANTE: runtime "classic" explícito. El runtime "automatic" genera
+    // imports de módulo (jsx-runtime) que fallan en un <script> normal sin
+    // sistema de módulos — esa fue la causa raíz de la pantalla negra anterior.
+    var result = Babel.transform(source, {
+      presets: [["react", { runtime: "classic" }]],
+      filename: "app.jsx",
+    });
+
+    var execScript = document.createElement("script");
+    execScript.text = result.code;
+    document.body.appendChild(execScript);
   } catch (err) {
-    console.error('Fallo al inicializar la app:', err);
     showFatalError(err);
   }
 })();
