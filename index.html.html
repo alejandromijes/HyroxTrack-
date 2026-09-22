@@ -1,0 +1,1863 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+<meta name="apple-mobile-web-app-title" content="HyroxTrack" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="theme-color" content="#0E1013" />
+<title>HyroxTrack — Definición → Masa magra</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%230E1013'/%3E%3Ctext x='50' y='68' font-size='58' text-anchor='middle' fill='%23FF4B3E' font-family='Arial' font-weight='900'%3EH%3C/text%3E%3C/svg%3E" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0E1013;
+    --bg2:#15181D;
+    --card:#1B1F26;
+    --card-border:#262B33;
+    --line:#2A2F38;
+    --text:#F2F3F5;
+    --text-dim:#9AA1AC;
+    --text-faint:#5C636E;
+    --coral:#FF4B3E;
+    --coral-dim:#7A2A24;
+    --teal:#2DD4BF;
+    --amber:#F2B134;
+    --blue:#4C8EFF;
+    --green:#4CAF7D;
+    --danger:#FF4B3E;
+    --radius:16px;
+    --radius-sm:10px;
+    --font-display:'Barlow Condensed',system-ui,-apple-system,sans-serif;
+    --font-body:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);}
+  body{
+    font-family:var(--font-body);
+    font-size:15px;
+    line-height:1.45;
+    padding-bottom:calc(78px + env(safe-area-inset-bottom));
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+  }
+  #root{min-height:100vh;}
+  h1,h2,h3,h4{font-family:var(--font-display);font-weight:700;margin:0;letter-spacing:0.2px;}
+  .app-shell{max-width:560px;margin:0 auto;padding:14px 14px 4px;}
+  /* ---------- Header ---------- */
+  .topbar{display:flex;align-items:baseline;justify-content:space-between;padding:6px 2px 14px;}
+  .topbar .brand{font-family:var(--font-display);font-size:26px;font-weight:800;letter-spacing:0.5px;}
+  .topbar .brand span{color:var(--coral);}
+  .topbar .countdown{font-size:12px;color:var(--text-dim);text-align:right;line-height:1.3;}
+  .topbar .countdown b{color:var(--teal);font-size:15px;display:block;font-family:var(--font-display);}
+  /* ---------- Banner ---------- */
+  .banner{background:linear-gradient(90deg,#3A2A16,#2A1F14);border:1px solid #5C431E;color:#F2C879;border-radius:var(--radius-sm);padding:10px 12px;font-size:13px;margin-bottom:12px;display:flex;gap:8px;align-items:center;}
+  .banner.err{background:linear-gradient(90deg,#3A1616,#2A1414);border-color:#5C1E1E;color:#F29A9A;}
+  .banner button{margin-left:auto;background:rgba(255,255,255,0.08);border:none;color:inherit;border-radius:8px;padding:6px 10px;font-size:12px;font-weight:600;white-space:nowrap;}
+  /* ---------- Cards ---------- */
+  .card{background:var(--card);border:1px solid var(--card-border);border-radius:var(--radius);padding:14px;margin-bottom:12px;}
+  .card-title{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+  .card-title h3{font-size:19px;}
+  .card-sub{color:var(--text-dim);font-size:12.5px;margin-top:-6px;margin-bottom:10px;}
+  .pill{display:inline-flex;align-items:center;gap:4px;background:var(--bg2);border:1px solid var(--line);border-radius:999px;padding:3px 10px;font-size:11.5px;color:var(--text-dim);font-weight:600;}
+  .pill.on{background:rgba(76,175,125,0.15);border-color:rgba(76,175,125,0.4);color:var(--green);}
+  .pill.phase{background:rgba(255,75,62,0.12);border-color:rgba(255,75,62,0.35);color:#FF8177;}
+  /* ---------- Day selector ---------- */
+  .day-scroll{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 10px;margin-bottom:4px;scrollbar-width:none;}
+  .day-scroll::-webkit-scrollbar{display:none;}
+  .day-chip{flex:0 0 auto;width:52px;height:64px;border-radius:14px;border:1px solid var(--line);background:var(--card);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-family:var(--font-display);color:var(--text-dim);cursor:pointer;position:relative;}
+  .day-chip .dnum{font-size:20px;font-weight:800;color:var(--text);}
+  .day-chip .dlabel{font-size:10px;text-transform:uppercase;letter-spacing:0.5px;}
+  .day-chip.today{border-color:var(--teal);}
+  .day-chip.selected{background:var(--coral);border-color:var(--coral);}
+  .day-chip.selected .dnum,.day-chip.selected .dlabel{color:#fff;}
+  .day-chip .dot{position:absolute;bottom:5px;width:5px;height:5px;border-radius:50%;background:var(--green);}
+  /* ---------- Checklist ---------- */
+  .check-row{display:flex;align-items:center;gap:10px;padding:10px 4px;border-bottom:1px solid var(--line);}
+  .check-row:last-child{border-bottom:none;}
+  .check-box{width:26px;height:26px;border-radius:8px;border:2px solid var(--line);flex:0 0 auto;display:flex;align-items:center;justify-content:center;font-size:15px;color:transparent;font-weight:800;}
+  .check-box.checked{background:var(--green);border-color:var(--green);color:#08130D;}
+  .check-label{flex:1;font-weight:600;font-size:14.5px;}
+  .check-meta{font-size:11.5px;color:var(--text-dim);font-weight:500;}
+  .rpe-select{display:flex;gap:4px;}
+  .rpe-dot{width:22px;height:22px;border-radius:6px;background:var(--bg2);border:1px solid var(--line);font-size:10.5px;display:flex;align-items:center;justify-content:center;color:var(--text-dim);font-weight:700;}
+  .rpe-dot.active{background:var(--amber);border-color:var(--amber);color:#1a1300;}
+  .expand-toggle{background:none;border:none;color:var(--teal);font-size:12.5px;font-weight:600;padding:4px 2px 8px;display:block;}
+  .routine-box{background:var(--bg2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:2px 0 10px;font-size:13px;color:var(--text-dim);}
+  .routine-box b{color:var(--text);}
+  .routine-ex{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px dashed var(--line);}
+  .routine-ex:last-child{border-bottom:none;}
+  /* ---------- Macro bars ---------- */
+  .macro-bar-wrap{margin-bottom:8px;}
+  .macro-bar-label{display:flex;justify-content:space-between;font-size:11.5px;color:var(--text-dim);margin-bottom:3px;font-weight:600;}
+  .macro-bar-track{height:9px;border-radius:5px;background:var(--bg2);overflow:hidden;border:1px solid var(--line);}
+  .macro-bar-fill{height:100%;border-radius:5px;transition:width 0.3s ease;}
+  .kcal-summary{display:flex;align-items:baseline;gap:6px;margin-bottom:12px;}
+  .kcal-summary .big{font-family:var(--font-display);font-size:34px;font-weight:800;}
+  .kcal-summary .of{color:var(--text-dim);font-size:14px;}
+  /* ---------- Food list / chips ---------- */
+  .chip-row{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:10px;}
+  .food-chip{background:var(--bg2);border:1px solid var(--line);border-radius:999px;padding:7px 12px;font-size:12.5px;font-weight:600;color:var(--text);}
+  .food-item{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--line);font-size:13.5px;}
+  .food-item:last-child{border-bottom:none;}
+  .food-item .fi-name{font-weight:600;}
+  .food-item .fi-macro{color:var(--text-dim);font-size:11.5px;}
+  .food-item .fi-del{background:none;border:none;color:var(--text-faint);font-size:18px;padding:0 4px;}
+  /* ---------- Buttons / inputs ---------- */
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border-radius:12px;border:1px solid var(--line);background:var(--bg2);color:var(--text);font-weight:600;font-size:13.5px;padding:11px 14px;cursor:pointer;width:100%;}
+  .btn-primary{background:var(--coral);border-color:var(--coral);color:#fff;}
+  .btn-secondary{background:rgba(45,212,191,0.12);border-color:rgba(45,212,191,0.4);color:var(--teal);}
+  .btn-danger{background:rgba(255,75,62,0.12);border-color:rgba(255,75,62,0.4);color:#FF8177;}
+  .btn-ghost{background:transparent;}
+  .btn-row{display:flex;gap:8px;}
+  .btn-row .btn{flex:1;}
+  .btn:active{transform:scale(0.98);}
+  .btn[disabled]{opacity:0.5;}
+  input[type=text],input[type=number],input[type=password],input[type=date],textarea,select{
+    width:100%;background:var(--bg2);border:1px solid var(--line);border-radius:10px;color:var(--text);
+    padding:10px 12px;font-size:14px;font-family:var(--font-body);
+  }
+  textarea{resize:vertical;min-height:60px;}
+  label.field-label{display:block;font-size:11.5px;color:var(--text-dim);font-weight:600;margin:8px 0 4px;text-transform:uppercase;letter-spacing:0.4px;}
+  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
+  .grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;}
+  .file-btn{position:relative;overflow:hidden;}
+  .file-btn input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;}
+  /* ---------- Tabs ---------- */
+  .tabbar{position:fixed;bottom:0;left:0;right:0;background:rgba(21,24,29,0.92);backdrop-filter:blur(14px);border-top:1px solid var(--line);display:flex;padding:6px 6px calc(6px + env(safe-area-inset-bottom));z-index:50;}
+  .tab-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;background:none;border:none;color:var(--text-faint);font-size:10.5px;font-weight:700;padding:6px 2px;border-radius:10px;}
+  .tab-btn .ic{font-size:19px;}
+  .tab-btn.active{color:var(--coral);}
+  /* ---------- Stats ---------- */
+  .stat-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:4px;}
+  .stat-box{background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:12px 8px;text-align:center;}
+  .stat-box .sv{font-family:var(--font-display);font-size:26px;font-weight:800;color:var(--teal);}
+  .stat-box .sl{font-size:10.5px;color:var(--text-dim);font-weight:600;margin-top:2px;}
+  /* ---------- Section headers ---------- */
+  .section-eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--text-faint);font-weight:700;margin:18px 2px 8px;}
+  .section-eyebrow:first-child{margin-top:0;}
+  /* ---------- Misc ---------- */
+  .row-between{display:flex;align-items:center;justify-content:space-between;}
+  .muted{color:var(--text-dim);}
+  .small{font-size:12px;}
+  .divider{height:1px;background:var(--line);margin:12px 0;}
+  .empty-state{text-align:center;padding:26px 10px;color:var(--text-dim);font-size:13px;}
+  .empty-state .ic{font-size:30px;display:block;margin-bottom:8px;}
+  .err-fallback{padding:40px 20px;text-align:center;}
+  .err-fallback h2{color:var(--coral);margin-bottom:10px;}
+  .loading-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--teal);animation:pulse 1s infinite ease-in-out;}
+  @keyframes pulse{0%,100%{opacity:0.3;}50%{opacity:1;}}
+  .history-item{padding:10px 0;border-bottom:1px solid var(--line);}
+  .history-item:last-child{border-bottom:none;}
+  .history-item .hi-top{display:flex;justify-content:space-between;font-size:13px;font-weight:700;}
+  .history-item .hi-meta{font-size:11.5px;color:var(--text-dim);margin-top:2px;}
+  .seg-row{display:flex;gap:6px;margin-bottom:6px;}
+  .seg-row input{flex:1;}
+  .link-btn{background:none;border:none;color:var(--teal);font-size:12.5px;font-weight:600;padding:4px 0;}
+
+  .block-bar{display:flex;gap:4px;margin:10px 0 2px;}
+  .block-seg{flex:1;height:6px;border-radius:3px;background:#2A2F38;}
+  .block-seg.done{background:var(--coral);}
+  .block-seg.now{background:var(--amber);}
+  .set-row{display:grid;grid-template-columns:22px 1fr 1fr 1fr 26px;gap:6px;align-items:center;margin-bottom:6px;}
+  .set-row input{margin:0;padding:8px 6px;text-align:center;font-size:14px;}
+  .set-n{font-size:11px;color:var(--text-faint);text-align:center;font-weight:700;}
+  .lift-block{border:1px solid var(--line);border-radius:var(--radius-sm);padding:10px;margin-bottom:8px;background:var(--bg2);}
+  .lift-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:8px;}
+  .lift-head .ln{font-size:13px;font-weight:600;}
+  .lift-head .lm{font-size:11px;color:var(--text-dim);white-space:nowrap;}
+  .lift-prev{font-size:11px;color:var(--teal);margin-bottom:6px;}
+  .tag{display:inline-block;font-size:10px;letter-spacing:.06em;text-transform:uppercase;font-weight:700;padding:3px 7px;border-radius:999px;}
+  .tag.ok{background:rgba(76,175,125,.15);color:var(--green);}
+  .tag.warn{background:rgba(242,177,52,.15);color:var(--amber);}
+  .tag.bad{background:rgba(255,75,62,.15);color:var(--coral);}
+  .kv{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--line);font-size:13px;}
+  .kv:last-child{border-bottom:none;}
+  .kv .k{color:var(--text-dim);}
+  .kv .v{font-weight:600;}
+  .why{font-size:11px;color:var(--text-faint);line-height:1.45;margin-top:2px;}
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone@7/babel.min.js" crossorigin></script>
+
+<script type="text/plain" id="app-source">
+/* HyroxTrack v3 — Mesociclos de 4 semanas (definición → masa magra)
+   Reconstruido sobre v2. Reglas duras que NO deben romperse:
+   - Babel runtime "classic" explícito (ver part2). El "automatic" rompe todo en <script> plano.
+   - Error Boundary por pestaña.
+   - Lecturas de localStorage tolerantes a datos viejos/corruptos (migración v2 → v3).
+*/
+const { useState, useEffect, useMemo, useRef, useCallback } = React;
+
+/* =========================================================
+   CONSTANTES
+   ========================================================= */
+const STORAGE_KEY = "hyroxtrack_data_v3";
+const LEGACY_KEY = "hyroxtrack_data_v2";
+const APP_VERSION = 3;
+const CLAUDE_MODEL = "claude-sonnet-5";
+const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
+const KCAL_PER_KG = 7700;
+
+const COLOR = { coral: "#FF4B3E", teal: "#2DD4BF", amber: "#F2B134", blue: "#4C8EFF", green: "#4CAF7D", faint: "#5C636E" };
+const WEEKDAY_NAMES = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+const WEEKDAY_NAMES_FULL = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+const MONTHS = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+
+function clip(n, lo, hi) { return Math.min(Math.max(n, lo), hi); }
+function num(v) { const n = parseFloat(v); return Number.isFinite(n) ? n : null; }
+
+/* ---------- Fechas (siempre locales, nunca UTC) ---------- */
+function pad2(n) { return n < 10 ? "0" + n : String(n); }
+function toISO(d) { return d.getFullYear() + "-" + pad2(d.getMonth() + 1) + "-" + pad2(d.getDate()); }
+function fromISO(s) {
+  const parts = String(s || "").split("-");
+  if (parts.length !== 3) return new Date();
+  const d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+  return isNaN(d.getTime()) ? new Date() : d;
+}
+function todayISO() { return toISO(new Date()); }
+function addDaysISO(iso, n) { const d = fromISO(iso); d.setDate(d.getDate() + n); return toISO(d); }
+function diffDays(isoA, isoB) { return Math.round((fromISO(isoB).getTime() - fromISO(isoA).getTime()) / 86400000); }
+function fmtShort(iso) { const d = fromISO(iso); return d.getDate() + " " + MONTHS[d.getMonth()]; }
+function fmtLong(iso) { const d = fromISO(iso); return WEEKDAY_NAMES_FULL[d.getDay()] + " " + d.getDate() + " " + MONTHS[d.getMonth()]; }
+function weekdayISO(iso) { return fromISO(iso).getDay(); }
+
+/* =========================================================
+   PLAN — bloques (mesociclos) encadenados
+   goal: "cut" | "maintain" | "lean"
+   ========================================================= */
+const DEFAULT_START = "2026-09-22";
+const DEFAULT_BLOCKS = [
+  { id: "b1",  name: "Definición 1",        goal: "cut",      days: 28, kcal: 2250, protein: 175, carbs: 230, fat: 70, runBase: 35, note: "Calibrado con 79.4 kg y 19.9 % de grasa (22 sep). Provisional: al día 14 la app mide tu gasto real y corrige." },
+  { id: "b2",  name: "Definición 2",        goal: "cut",      days: 28, kcal: 2200, protein: 175, carbs: 218, fat: 70, runBase: 40, note: "Primer ajuste con datos reales. Ritmo meta: 0.30–0.55 kg/semana." },
+  { id: "b3",  name: "Definición 3",        goal: "cut",      days: 28, kcal: 2150, protein: 172, carbs: 213, fat: 68, runBase: 45, note: "Aquí suele aparecer la meseta 79–83 kg. Vigila fuerza y sueño antes de recortar más." },
+  { id: "b4",  name: "Descanso metabólico", goal: "maintain", days: 14, kcal: 2600, protein: 172, carbs: 303, fat: 78, runBase: 40, note: "Navidad y Año Nuevo a mantenimiento. Es estrategia: revierte parte de la adaptación metabólica y protege la adherencia." },
+  { id: "b5",  name: "Definición 4",        goal: "cut",      days: 28, kcal: 2100, protein: 170, carbs: 209, fat: 65, runBase: 45, note: "Último tramo del corte. Cierra el 25 ene 2027 alrededor de 73–75 kg." },
+  { id: "b6",  name: "Transición",          goal: "maintain", days: 28, kcal: 2550, protein: 170, carbs: 299, fat: 75, runBase: 45, note: "Subida gradual a mantenimiento (+100 kcal/semana). Sin esto, el rebote se come el corte." },
+  { id: "b7",  name: "Masa magra 1",        goal: "lean",     days: 28, kcal: 2800, protein: 170, carbs: 350, fat: 80, runBase: 40, note: "Superávit pequeño (+250 kcal). Meta: 0.15–0.25 kg/semana. Sube series antes que días: la frecuencia casi no mueve la hipertrofia." },
+  { id: "b8",  name: "Masa magra 2",        goal: "lean",     days: 28, kcal: 2850, protein: 170, carbs: 363, fat: 80, runBase: 40, note: "Prioridad a la progresión de carga en los básicos. Se agrega una segunda carrera corta de intervalos." },
+  { id: "b9",  name: "Masa magra 3",        goal: "lean",     days: 28, kcal: 2900, protein: 170, carbs: 371, fat: 82, runBase: 45, note: "Si el % de grasa sube más de 2 puntos desde el bloque 7, corta el superávit a +150 kcal." },
+  { id: "b10", name: "Masa magra 4",        goal: "lean",     days: 28, kcal: 2900, protein: 170, carbs: 371, fat: 82, runBase: 45, note: "Cierre de la fase de construcción el 14 jun 2027." },
+  { id: "b11", name: "Mini-corte",          goal: "cut",      days: 56, kcal: 2450, protein: 180, carbs: 271, fat: 72, runBase: 50, note: "8 semanas para revelar lo construido sin perderlo: −0.4 %/semana con la carga de fuerza intacta." },
+  { id: "b12", name: "Específico + pico",   goal: "maintain", days: 35, kcal: 2700, protein: 175, carbs: 331, fat: 75, runBase: 55, note: "Mantenimiento y trabajo específico de Hyrox: carrera comprometida y estaciones, 3 carreras/semana. Taper y carga de carbos la última semana." },
+];
+
+function normalizeBlocks(blocks, startDate) {
+  const out = [];
+  let cursor = startDate;
+  (blocks || []).forEach((b, i) => {
+    const days = Math.max(7, Math.round(b.days || 28));
+    const startISO = cursor;
+    const endISO = addDaysISO(cursor, days - 1);
+    out.push({ ...b, index: i + 1, days, startISO, endISO });
+    cursor = addDaysISO(endISO, 1);
+  });
+  return out;
+}
+function blockForDate(blocks, iso) {
+  for (let i = 0; i < blocks.length; i++) {
+    if (iso >= blocks[i].startISO && iso <= blocks[i].endISO) return blocks[i];
+  }
+  if (blocks.length && iso < blocks[0].startISO) return blocks[0];
+  return blocks.length ? blocks[blocks.length - 1] : null;
+}
+function weekInBlock(block, iso) {
+  if (!block) return 1;
+  return clip(Math.floor(diffDays(block.startISO, iso) / 7) + 1, 1, Math.ceil(block.days / 7));
+}
+function runMinutesFor(block, iso) {
+  if (!block) return 40;
+  const w = weekInBlock(block, iso);
+  return clip((block.runBase || 40) + (w - 1) * 5, 25, 80);
+}
+
+/* Horario fijo: L/Mi/V funcional · Ma/J fuerza · fin de semana carrera */
+function scheduleForDate(plan, blocks, iso) {
+  const wd = weekdayISO(iso);
+  const block = blockForDate(blocks, iso);
+  const runDay = plan.runDay === 0 ? 0 : 6;
+  const sched = { funcional: false, fuerza: null, correr: null, block };
+  if (wd === 1 || wd === 3 || wd === 5) sched.funcional = true;
+  if (wd === 2) sched.fuerza = "A";
+  if (wd === 4) sched.fuerza = "B";
+  if (wd === runDay) sched.correr = runMinutesFor(block, iso);
+  return sched;
+}
+
+/* =========================================================
+   RUTINAS DE FUERZA — gimnasio completo, 2 sesiones full-body
+   Cada ejercicio con id estable para seguir cargas en el tiempo.
+   ========================================================= */
+const ROUTINE_A = {
+  id: "A",
+  title: "Día A — Inferior + empuje",
+  cue: "Progresión doble: cuando completes el tope de reps en todas las series con RIR 2, sube carga 2.5–5 kg.",
+  exercises: [
+    { id: "sentadilla", name: "Sentadilla trasera con barra", sets: "4 × 5-8", rir: "RIR 2" },
+    { id: "press_banca", name: "Press banca con barra", sets: "4 × 6-10", rir: "RIR 2" },
+    { id: "pm_rumano", name: "Peso muerto rumano", sets: "3 × 8-10", rir: "RIR 2" },
+    { id: "remo_polea", name: "Remo en polea baja", sets: "3 × 10-12", rir: "RIR 2" },
+    { id: "press_militar", name: "Press militar con mancuernas", sets: "3 × 8-12", rir: "RIR 2" },
+    { id: "laterales", name: "Elevaciones laterales", sets: "3 × 12-20", rir: "RIR 1" },
+    { id: "plancha", name: "Plancha con lastre", sets: "3 × 40 s", rir: "" },
+  ],
+};
+const ROUTINE_B = {
+  id: "B",
+  title: "Día B — Posterior + tracción",
+  cue: "El peso muerto manda: si la barra se pone lenta dos semanas seguidas, el déficit es demasiado agresivo.",
+  exercises: [
+    { id: "peso_muerto", name: "Peso muerto convencional o trap bar", sets: "4 × 4-6", rir: "RIR 2-3" },
+    { id: "dominadas", name: "Dominadas lastradas o jalón al pecho", sets: "4 × 6-10", rir: "RIR 2" },
+    { id: "prensa", name: "Prensa o búlgara con mancuernas", sets: "3 × 10-12", rir: "RIR 2" },
+    { id: "press_inclinado", name: "Press inclinado con mancuernas", sets: "3 × 8-12", rir: "RIR 2" },
+    { id: "remo_unilateral", name: "Remo unilateral con mancuerna", sets: "3 × 10-12", rir: "RIR 2" },
+    { id: "brazos", name: "Curl bíceps + extensión tríceps", sets: "2 × 10-15 c/u", rir: "RIR 1" },
+    { id: "rueda_abs", name: "Rueda abdominal o elevación de piernas", sets: "3 × 8-12", rir: "" },
+  ],
+};
+function routineFor(letter) { return letter === "A" ? ROUTINE_A : letter === "B" ? ROUTINE_B : null; }
+const ALL_LIFTS = ROUTINE_A.exercises.concat(ROUTINE_B.exercises);
+const KEY_LIFTS = ["sentadilla", "press_banca", "peso_muerto", "dominadas", "pm_rumano"];
+function liftName(id) { const e = ALL_LIFTS.find((x) => x.id === id); return e ? e.name : id; }
+
+function hrZones(hrMax) {
+  const m = clip(hrMax || 185, 120, 230);
+  return [
+    { name: "Z1 recuperación", lo: Math.round(m * 0.50), hi: Math.round(m * 0.60) },
+    { name: "Z2 base aeróbica", lo: Math.round(m * 0.60), hi: Math.round(m * 0.70) },
+    { name: "Z3 tempo", lo: Math.round(m * 0.70), hi: Math.round(m * 0.80) },
+    { name: "Z4 umbral", lo: Math.round(m * 0.80), hi: Math.round(m * 0.90) },
+    { name: "Z5 VO2máx", lo: Math.round(m * 0.90), hi: m },
+  ];
+}
+function runProtocolText(min, hrMax) {
+  const warm = 8, cool = 5;
+  const main = Math.max(10, min - warm - cool);
+  const z2 = hrZones(hrMax)[1];
+  return "Calentamiento " + warm + " min suave · " + main + " min en Zona 2 (" + z2.lo + "–" + z2.hi + " bpm) · " + cool + " min enfriamiento. La zona manda sobre el ritmo: si la FC se pasa, camina. Debes poder hablar en frases completas.";
+}
+
+/* Epley con corrección por RIR — para seguir fuerza sin tener que probar 1RM */
+function e1rm(weight, reps, rir) {
+  const w = num(weight), r = num(reps);
+  if (!w || !r) return null;
+  const effReps = r + (num(rir) || 0);
+  return w * (1 + effReps / 30);
+}
+
+const SUPPS = [
+  { id: "multi", label: "Multivitamínico bariátrico", why: "No negociable post-manga: B12, folato, zinc, cobre, A/D/E/K. Con tu ferritina en 188 ng/mL, revisa la dosis de hierro con tu médico antes de suplementarlo a ciegas." },
+  { id: "d3", label: "Vitamina D3 3,000–6,000 UI", why: "Objetivo 25(OH)D > 30 ng/mL. La manga baja absorción de liposolubles." },
+  { id: "calcio", label: "Citrato de calcio 1,200–1,500 mg", why: "En 2–3 tomas de ≤500 mg. Citrato, no carbonato: no depende de ácido gástrico." },
+  { id: "proteina", label: "Proteína en polvo (si falta)", why: "Con capacidad gástrica reducida, el batido cierra el hueco de proteína." },
+  { id: "creatina", label: "Creatina monohidrato 5 g", why: "Evidencia sólida para fuerza y masa magra. No requiere carga ni ciclado." },
+];
+
+/* =========================================================
+   MODELO DE DATOS (v3) — días indexados por fecha ISO
+   ========================================================= */
+function emptyDay() {
+  return {
+    funcionalDone: false, funcionalRpe: null,
+    fuerzaDone: false, fuerzaRpe: null,
+    correrDone: false, correrRpe: null, correrMin: null, correrKm: null,
+    lifts: {},        // { exerciseId: [{ w, r, rir }] }
+    meals: [],
+    weight: null,     // { kg, bodyFatPct, musclePct, visceral, waterPct, time }
+    supps: {},        // { multi:true, d3:true, ... }
+    note: "",
+  };
+}
+function emptyData() {
+  return {
+    version: APP_VERSION,
+    apiKey: "",
+    profile: { heightCm: 174, hrMax: 185, sex: "m", surgery: "manga gástrica 2025-05" },
+    plan: {
+      startDate: DEFAULT_START,
+      runDay: 6,
+      maintenanceKcal: 2650,
+      blocks: DEFAULT_BLOCKS.map((b) => ({ ...b })),
+    },
+    days: {},
+    performance: { hyrox: [], secondary: [] },
+    frequentFoods: [],
+    reviews: [],
+    lastExportAt: null,
+  };
+}
+
+function sanitizeSets(raw) {
+  if (!Array.isArray(raw)) return [];
+  return raw.slice(0, 10).map((s) => ({
+    w: num(s && s.w),
+    r: num(s && s.r),
+    rir: num(s && s.rir),
+  }));
+}
+function sanitizeDay(raw) {
+  const base = emptyDay();
+  if (!raw || typeof raw !== "object") return base;
+  base.funcionalDone = !!(raw.funcionalDone || raw.hyroxDone);
+  base.funcionalRpe = num(raw.funcionalRpe != null ? raw.funcionalRpe : raw.hyroxRpe);
+  base.fuerzaDone = !!(raw.fuerzaDone || raw.pesasDone);
+  base.fuerzaRpe = num(raw.fuerzaRpe != null ? raw.fuerzaRpe : raw.pesasRpe);
+  base.correrDone = !!raw.correrDone;
+  base.correrRpe = num(raw.correrRpe);
+  base.correrMin = num(raw.correrMin);
+  base.correrKm = num(raw.correrKm);
+  base.note = typeof raw.note === "string" ? raw.note : "";
+  if (raw.lifts && typeof raw.lifts === "object" && !Array.isArray(raw.lifts)) {
+    Object.keys(raw.lifts).forEach((k) => { const s = sanitizeSets(raw.lifts[k]); if (s.length) base.lifts[k] = s; });
+  }
+  if (raw.supps && typeof raw.supps === "object") {
+    SUPPS.forEach((s) => { if (raw.supps[s.id]) base.supps[s.id] = true; });
+  }
+  if (Array.isArray(raw.meals)) {
+    base.meals = raw.meals.filter((m) => m && typeof m === "object").map((m, i) => ({
+      id: m.id || "m" + i + Math.random().toString(36).slice(2),
+      name: String(m.name || "Comida"),
+      kcal: num(m.kcal) || 0, protein: num(m.protein) || 0, carbs: num(m.carbs) || 0, fat: num(m.fat) || 0,
+      source: m.source || "manual", time: m.time || null,
+    }));
+  }
+  if (raw.weight && typeof raw.weight === "object" && num(raw.weight.kg)) {
+    base.weight = {
+      kg: num(raw.weight.kg),
+      bodyFatPct: num(raw.weight.bodyFatPct),
+      musclePct: num(raw.weight.musclePct),
+      visceral: num(raw.weight.visceral),
+      waterPct: num(raw.weight.waterPct),
+      time: raw.weight.time || null,
+    };
+  }
+  return base;
+}
+function sanitizePerfEntry(raw, kind) {
+  if (!raw || typeof raw !== "object") return null;
+  const dur = num(raw.durationMin);
+  if (dur === null) return null;
+  return {
+    id: raw.id || "p" + Math.random().toString(36).slice(2),
+    type: raw.type || (kind === "hyrox" ? "hyrox" : "running"),
+    durationMin: dur,
+    hrAvg: num(raw.hrAvg), hrMax: num(raw.hrMax), rpe: num(raw.rpe),
+    notes: typeof raw.notes === "string" ? raw.notes : "",
+    segments: Array.isArray(raw.segments) ? raw.segments.filter((s) => s && (s.label || s.value)).map((s) => ({ label: String(s.label || ""), value: String(s.value || "") })) : [],
+    dateISO: typeof raw.dateISO === "string" ? raw.dateISO : (raw.date ? toISO(new Date(raw.date)) : todayISO()),
+  };
+}
+function sanitizeBlocks(raw) {
+  if (!Array.isArray(raw) || !raw.length) return DEFAULT_BLOCKS.map((b) => ({ ...b }));
+  const out = raw.filter((b) => b && typeof b === "object").map((b, i) => ({
+    id: String(b.id || "b" + (i + 1)),
+    name: String(b.name || "Bloque " + (i + 1)),
+    goal: ["cut", "maintain", "lean"].indexOf(b.goal) >= 0 ? b.goal : "cut",
+    days: Math.max(7, Math.round(num(b.days) || 28)),
+    kcal: Math.round(num(b.kcal) || 2200),
+    protein: Math.round(num(b.protein) || 180),
+    carbs: Math.round(num(b.carbs) || 200),
+    fat: Math.round(num(b.fat) || 70),
+    runBase: Math.round(num(b.runBase) || 40),
+    note: typeof b.note === "string" ? b.note : "",
+  }));
+  return out.length ? out : DEFAULT_BLOCKS.map((b) => ({ ...b }));
+}
+
+/* Migración v2 (días 1..41 desde 2026-07-28) → v3 (fechas ISO) */
+function migrateV2Days(rawDays) {
+  const out = {};
+  if (!rawDays || typeof rawDays !== "object") return out;
+  const LEGACY_START = "2026-07-28";
+  Object.keys(rawDays).forEach((k) => {
+    const n = parseInt(k, 10);
+    if (!Number.isFinite(n) || n < 1 || n > 400) return;
+    const iso = addDaysISO(LEGACY_START, n - 1);
+    out[iso] = sanitizeDay(rawDays[k]);
+  });
+  return out;
+}
+
+function sanitizeData(raw) {
+  const base = emptyData();
+  if (!raw || typeof raw !== "object") return base;
+
+  if (typeof raw.apiKey === "string") base.apiKey = raw.apiKey;
+  if (raw.lastExportAt) base.lastExportAt = raw.lastExportAt;
+
+  if (raw.profile && typeof raw.profile === "object") {
+    base.profile = {
+      heightCm: num(raw.profile.heightCm) || 174,
+      hrMax: clip(num(raw.profile.hrMax) || 185, 120, 230),
+      sex: raw.profile.sex === "f" ? "f" : "m",
+      surgery: typeof raw.profile.surgery === "string" ? raw.profile.surgery : base.profile.surgery,
+    };
+  }
+
+  if (raw.plan && typeof raw.plan === "object") {
+    base.plan.startDate = /^\d{4}-\d{2}-\d{2}$/.test(raw.plan.startDate) ? raw.plan.startDate : DEFAULT_START;
+    base.plan.runDay = raw.plan.runDay === 0 ? 0 : 6;
+    base.plan.maintenanceKcal = Math.round(num(raw.plan.maintenanceKcal) || 2650);
+    base.plan.blocks = sanitizeBlocks(raw.plan.blocks);
+  }
+
+  const isLegacy = !raw.version || raw.version < 3;
+  if (raw.days && typeof raw.days === "object") {
+    const keys = Object.keys(raw.days);
+    const looksNumeric = keys.length > 0 && keys.every((k) => /^\d+$/.test(k));
+    if (isLegacy || looksNumeric) {
+      base.days = migrateV2Days(raw.days);
+    } else {
+      keys.forEach((k) => { if (/^\d{4}-\d{2}-\d{2}$/.test(k)) base.days[k] = sanitizeDay(raw.days[k]); });
+    }
+  }
+
+  if (raw.performance && typeof raw.performance === "object") {
+    ["hyrox", "secondary"].forEach((k) => {
+      const arr = Array.isArray(raw.performance[k]) ? raw.performance[k] : [];
+      base.performance[k] = arr.map((e) => {
+        const legacyDay = num(e && e.dayNumber);
+        if (legacyDay && !(e && e.dateISO)) e = { ...e, dateISO: addDaysISO("2026-07-28", legacyDay - 1) };
+        return sanitizePerfEntry(e, k);
+      }).filter(Boolean);
+    });
+  }
+
+  if (Array.isArray(raw.frequentFoods)) {
+    base.frequentFoods = raw.frequentFoods.filter((f) => f && f.name).map((f, i) => ({
+      id: f.id || "ff" + i, name: String(f.name),
+      kcal: num(f.kcal) || 0, protein: num(f.protein) || 0, carbs: num(f.carbs) || 0, fat: num(f.fat) || 0,
+    })).slice(0, 60);
+  }
+  if (Array.isArray(raw.reviews)) {
+    base.reviews = raw.reviews.filter((r) => r && r.blockId).map((r) => ({
+      blockId: String(r.blockId), closedAt: r.closedAt || todayISO(),
+      weightStart: num(r.weightStart), weightEnd: num(r.weightEnd),
+      tdee: num(r.tdee), adherence: num(r.adherence), avgKcal: num(r.avgKcal),
+      notes: typeof r.notes === "string" ? r.notes : "",
+    }));
+  }
+  return base;
+}
+
+function loadData() {
+  try {
+    let raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) {
+      const legacy = localStorage.getItem(LEGACY_KEY);
+      if (legacy) {
+        const migrated = sanitizeData(JSON.parse(legacy));
+        migrated.version = APP_VERSION;
+        return migrated;
+      }
+      return emptyData();
+    }
+    return sanitizeData(JSON.parse(raw));
+  } catch (e) {
+    console.error("Datos guardados ilegibles, se inicia limpio:", e);
+    return emptyData();
+  }
+}
+function saveData(data) {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); return true; }
+  catch (e) { console.error("Error guardando:", e); return false; }
+}
+
+/* =========================================================
+   ALMACENAMIENTO — persistencia y respaldo a archivo
+   ========================================================= */
+function isStandalone() {
+  try {
+    if (window.navigator && typeof window.navigator.standalone === "boolean") return window.navigator.standalone;
+    return !!(window.matchMedia && window.matchMedia("(display-mode: standalone)").matches);
+  } catch (e) { return false; }
+}
+async function requestPersistence() {
+  try {
+    if (!navigator.storage || !navigator.storage.persist) return "no-soportado";
+    if (navigator.storage.persisted) {
+      const already = await navigator.storage.persisted();
+      if (already) return "concedido";
+    }
+    const granted = await navigator.storage.persist();
+    return granted ? "concedido" : "denegado";
+  } catch (e) { return "no-soportado"; }
+}
+function backupFilename() { return "hyroxtrack-" + todayISO() + ".json"; }
+function downloadBackup(data) {
+  const text = JSON.stringify(data, null, 2);
+  const blob = new Blob([text], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = backupFilename();
+  a.rel = "noopener";
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 2000);
+}
+function readTextFile(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ""));
+    reader.onerror = () => reject(new Error("No se pudo leer el archivo"));
+    reader.readAsText(file);
+  });
+}
+function daysSince(iso8601) {
+  if (!iso8601) return null;
+  const t = new Date(iso8601).getTime();
+  if (!Number.isFinite(t)) return null;
+  return Math.floor((Date.now() - t) / 86400000);
+}
+
+/* =========================================================
+   IA — llamadas directas a la API pública de Anthropic
+   ========================================================= */
+async function callClaude(apiKey, content, maxTokens) {
+  const resp = await fetch(ANTHROPIC_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01",
+      "anthropic-dangerous-direct-browser-access": "true",
+    },
+    body: JSON.stringify({ model: CLAUDE_MODEL, max_tokens: maxTokens || 1024, messages: [{ role: "user", content }] }),
+  });
+  if (!resp.ok) {
+    let detail = "";
+    try { const j = await resp.json(); detail = (j && j.error && j.error.message) || JSON.stringify(j); } catch (e) {}
+    throw new Error("API " + resp.status + (detail ? ": " + detail : ""));
+  }
+  const data = await resp.json();
+  const textBlock = (data.content || []).find((b) => b.type === "text");
+  if (!textBlock) throw new Error("La IA no devolvió texto");
+  return textBlock.text;
+}
+function extractJson(text) {
+  let t = (text || "").trim();
+  t = t.replace(/^```json/i, "").replace(/^```/, "").replace(/```$/, "").trim();
+  const start = t.indexOf("{"); const end = t.lastIndexOf("}");
+  if (start !== -1 && end !== -1) t = t.slice(start, end + 1);
+  return JSON.parse(t);
+}
+async function aiParseMealText(apiKey, text) {
+  const prompt = 'Eres un nutriologo especializado en pacientes post manga gastrica. Analiza esta comida descrita en texto y estima sus macros totales. Responde UNICAMENTE con JSON valido, sin texto adicional ni markdown, con este formato exacto: {"name":"nombre corto","kcal":numero,"protein":numero,"carbs":numero,"fat":numero}. Comida: ' + text;
+  const raw = await callClaude(apiKey, prompt, 400);
+  return extractJson(raw);
+}
+async function aiParseMealPhoto(apiKey, base64, mediaType) {
+  const prompt = 'Eres un nutriologo. Observa esta foto de un platillo y estima sus macros totales de la porcion visible. Responde UNICAMENTE con JSON valido, sin texto adicional, con este formato exacto: {"name":"nombre corto","kcal":numero,"protein":numero,"carbs":numero,"fat":numero}.';
+  const raw = await callClaude(apiKey, [{ type: "image", source: { type: "base64", media_type: mediaType, data: base64 } }, { type: "text", text: prompt }], 400);
+  return extractJson(raw);
+}
+async function aiParseScalePhoto(apiKey, base64, mediaType) {
+  const prompt = 'Observa esta foto de una bascula corporal y extrae los valores visibles. Responde UNICAMENTE con JSON valido, con este formato: {"kg":numero,"bodyFatPct":numero_o_null,"musclePct":numero_o_null,"visceral":numero_o_null,"waterPct":numero_o_null}. Usa null si un dato no es visible.';
+  const raw = await callClaude(apiKey, [{ type: "image", source: { type: "base64", media_type: mediaType, data: base64 } }, { type: "text", text: prompt }], 300);
+  return extractJson(raw);
+}
+async function aiParseWatchPhoto(apiKey, base64, mediaType) {
+  const prompt = 'Observa esta foto de un resumen de entrenamiento (Apple Watch u otro reloj) y extrae los valores visibles. Responde UNICAMENTE con JSON valido, con este formato: {"durationMin":numero_o_null,"hrAvg":numero_o_null,"hrMax":numero_o_null,"km":numero_o_null}. Usa null si un dato no es visible.';
+  const raw = await callClaude(apiKey, [{ type: "image", source: { type: "base64", media_type: mediaType, data: base64 } }, { type: "text", text: prompt }], 300);
+  return extractJson(raw);
+}
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result).split(",")[1] || "");
+    reader.onerror = () => reject(new Error("No se pudo leer el archivo"));
+    reader.readAsDataURL(file);
+  });
+}
+
+/* =========================================================
+   ANALÍTICA — calibración de gasto real, adherencia, series
+   ========================================================= */
+function dayKcal(day) {
+  if (!day || !Array.isArray(day.meals) || !day.meals.length) return null;
+  return day.meals.reduce((a, m) => a + (m.kcal || 0), 0);
+}
+function daysInRange(data, fromISO_, toISO_) {
+  const out = [];
+  Object.keys(data.days).forEach((iso) => {
+    if (iso >= fromISO_ && iso <= toISO_) out.push({ iso, day: data.days[iso] });
+  });
+  return out.sort((a, b) => (a.iso < b.iso ? -1 : 1));
+}
+function weightPointsInRange(data, fromISO_, toISO_) {
+  return daysInRange(data, fromISO_, toISO_)
+    .filter((e) => e.day.weight && Number.isFinite(e.day.weight.kg))
+    .map((e) => ({ iso: e.iso, kg: e.day.weight.kg }));
+}
+/* Regresión lineal simple: devuelve kg/día */
+function weightSlopePerDay(points) {
+  if (!points || points.length < 2) return null;
+  const x0 = points[0].iso;
+  const xs = points.map((p) => diffDays(x0, p.iso));
+  const ys = points.map((p) => p.kg);
+  const n = xs.length;
+  const mx = xs.reduce((a, b) => a + b, 0) / n;
+  const my = ys.reduce((a, b) => a + b, 0) / n;
+  let numr = 0, den = 0;
+  for (let i = 0; i < n; i++) { numr += (xs[i] - mx) * (ys[i] - my); den += (xs[i] - mx) * (xs[i] - mx); }
+  if (den === 0) return null;
+  return numr / den;
+}
+/* TDEE real = ingesta media − (cambio de peso × 7700 / días).
+   Requiere ≥14 días de ventana, ≥10 días con comidas y ≥3 pesadas. */
+function estimateTdee(data, fromISO_, toISO_) {
+  const span = diffDays(fromISO_, toISO_) + 1;
+  if (span < 14) return { ok: false, reason: "Necesitas al menos 14 días en el bloque." };
+  const entries = daysInRange(data, fromISO_, toISO_);
+  const kcals = entries.map((e) => dayKcal(e.day)).filter((k) => k !== null && k > 600);
+  const wpts = weightPointsInRange(data, fromISO_, toISO_);
+  if (kcals.length < 10) return { ok: false, reason: "Faltan días con comidas registradas (" + kcals.length + "/10)." };
+  if (wpts.length < 3) return { ok: false, reason: "Faltan pesadas (" + wpts.length + "/3)." };
+  const slope = weightSlopePerDay(wpts);
+  if (slope === null) return { ok: false, reason: "Las pesadas no cubren días distintos." };
+  const avgKcal = kcals.reduce((a, b) => a + b, 0) / kcals.length;
+  const tdee = avgKcal - slope * KCAL_PER_KG;
+  const lastKg = wpts[wpts.length - 1].kg;
+  const pctPerWeek = lastKg > 0 ? (slope * 7 / lastKg) * 100 : 0;
+  return {
+    ok: true, tdee: Math.round(tdee), avgKcal: Math.round(avgKcal),
+    kgPerWeek: slope * 7, pctPerWeek, loggedDays: kcals.length, weighIns: wpts.length,
+    lastKg,
+  };
+}
+/* Banda objetivo de ritmo semanal según el objetivo del bloque */
+function targetBand(goal) {
+  if (goal === "cut") return { lo: -0.70, hi: -0.40, label: "−0.40 a −0.70 %/semana" };
+  if (goal === "lean") return { lo: 0.15, hi: 0.35, label: "+0.15 a +0.35 %/semana" };
+  return { lo: -0.15, hi: 0.15, label: "±0.15 %/semana" };
+}
+function verdictFor(goal, pctPerWeek) {
+  const band = targetBand(goal);
+  if (pctPerWeek < band.lo) return { tag: "bad", text: goal === "cut" ? "Demasiado rápido — riesgo de perder masa magra" : "Por debajo de lo esperado" };
+  if (pctPerWeek > band.hi) return { tag: "warn", text: goal === "cut" ? "Muy lento — sube el déficit" : "Demasiado rápido — estás ganando grasa de más" };
+  return { tag: "ok", text: "En rango" };
+}
+/* kcal sugeridas para el siguiente bloque a partir del gasto medido */
+function suggestKcal(tdee, goal, weightKg) {
+  if (!tdee) return null;
+  if (goal === "cut") {
+    const target = tdee - 450;
+    return Math.round(clip(target, Math.max(1500, 22 * (weightKg || 78)), tdee - 200) / 10) * 10;
+  }
+  if (goal === "lean") return Math.round((tdee + 250) / 10) * 10;
+  return Math.round(tdee / 10) * 10;
+}
+function macrosFor(kcal, weightKg, goal) {
+  const w = weightKg || 78;
+  const protein = Math.round(clip(w * 2.3, 150, 200));
+  const fat = Math.round(clip(w * (goal === "lean" ? 1.0 : 0.9), 60, 95));
+  const carbs = Math.max(80, Math.round((kcal - protein * 4 - fat * 9) / 4));
+  return { protein, carbs, fat };
+}
+function adherenceInRange(data, plan, blocks, fromISO_, toISO_) {
+  let scheduled = 0, done = 0, rpeSum = 0, rpeCount = 0;
+  const today = todayISO();
+  const end = toISO_ < today ? toISO_ : today;
+  if (end < fromISO_) return { pct: 0, done: 0, scheduled: 0, avgRpe: "—" };
+  for (let iso = fromISO_; iso <= end; iso = addDaysISO(iso, 1)) {
+    const s = scheduleForDate(plan, blocks, iso);
+    const d = data.days[iso];
+    if (s.funcional) { scheduled++; if (d && d.funcionalDone) done++; if (d && d.funcionalRpe) { rpeSum += d.funcionalRpe; rpeCount++; } }
+    if (s.fuerza) { scheduled++; if (d && d.fuerzaDone) done++; if (d && d.fuerzaRpe) { rpeSum += d.fuerzaRpe; rpeCount++; } }
+    if (s.correr) { scheduled++; if (d && d.correrDone) done++; if (d && d.correrRpe) { rpeSum += d.correrRpe; rpeCount++; } }
+  }
+  return { pct: scheduled ? Math.round((done / scheduled) * 100) : 0, done, scheduled, avgRpe: rpeCount ? (rpeSum / rpeCount).toFixed(1) : "—" };
+}
+function bestE1rmByLift(data) {
+  const out = {};
+  Object.keys(data.days).forEach((iso) => {
+    const lifts = data.days[iso].lifts || {};
+    Object.keys(lifts).forEach((ex) => {
+      let best = null;
+      lifts[ex].forEach((s) => { const v = e1rm(s.w, s.r, s.rir); if (v && (!best || v > best)) best = v; });
+      if (best) { if (!out[ex]) out[ex] = []; out[ex].push({ iso, value: best }); }
+    });
+  });
+  Object.keys(out).forEach((k) => out[k].sort((a, b) => (a.iso < b.iso ? -1 : 1)));
+  return out;
+}
+function lastSetsFor(data, exId, beforeISO) {
+  const isos = Object.keys(data.days).filter((iso) => iso < beforeISO && data.days[iso].lifts && data.days[iso].lifts[exId] && data.days[iso].lifts[exId].length).sort();
+  if (!isos.length) return null;
+  const iso = isos[isos.length - 1];
+  return { iso, sets: data.days[iso].lifts[exId] };
+}
+
+/* =========================================================
+   ERROR BOUNDARY
+   ========================================================= */
+class ErrorBoundary extends React.Component {
+  constructor(props) { super(props); this.state = { error: null }; }
+  static getDerivedStateFromError(error) { return { error }; }
+  componentDidCatch(error, info) { console.error("ErrorBoundary:", error, info); }
+  render() {
+    if (this.state.error) {
+      return (
+        <div className="err-fallback">
+          <h2>Algo falló aquí</h2>
+          <p className="muted small">{String((this.state.error && this.state.error.message) || this.state.error)}</p>
+          <button className="btn btn-secondary" style={{ marginTop: 12 }} onClick={() => this.setState({ error: null })}>Reintentar</button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+/* =========================================================
+   UI — piezas reutilizables
+   ========================================================= */
+function RpeSelect({ value, onChange }) {
+  return (
+    <div className="rpe-select">
+      {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
+        <div key={n} className={"rpe-dot" + (value === n ? " active" : "")} onClick={() => onChange(value === n ? null : n)}>{n}</div>
+      ))}
+    </div>
+  );
+}
+function MacroBar({ label, value, target, color }) {
+  const pct = target > 0 ? clip(Math.round((value / target) * 100), 0, 100) : 0;
+  return (
+    <div className="macro-bar-wrap">
+      <div className="macro-bar-label"><span>{label}</span><span>{Math.round(value)}g / {target}g</span></div>
+      <div className="macro-bar-track"><div className="macro-bar-fill" style={{ width: pct + "%", background: color }}></div></div>
+    </div>
+  );
+}
+function KV({ k, v }) { return (<div className="kv"><span className="k">{k}</span><span className="v">{v}</span></div>); }
+function ChecklistRow({ label, meta, done, rpe, onToggle, onRpe, children }) {
+  return (
+    <div>
+      <div className="check-row">
+        <div className={"check-box" + (done ? " checked" : "")} onClick={onToggle}>{done ? "✓" : ""}</div>
+        <div style={{ flex: 1 }}>
+          <div className="check-label">{label}</div>
+          {meta && <div className="check-meta">{meta}</div>}
+        </div>
+      </div>
+      {done && onRpe && (
+        <div style={{ padding: "0 4px 8px 40px" }}>
+          <div className="check-meta" style={{ marginBottom: 5 }}>RPE (esfuerzo percibido)</div>
+          <RpeSelect value={rpe} onChange={onRpe} />
+        </div>
+      )}
+      {children}
+    </div>
+  );
+}
+function ExpandableBox({ label, children }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div>
+      <button className="expand-toggle" onClick={() => setOpen((o) => !o)}>{open ? "▾" : "▸"} {label}</button>
+      {open && <div className="routine-box">{children}</div>}
+    </div>
+  );
+}
+
+/* =========================================================
+   TOPBAR / TABBAR
+   ========================================================= */
+function TopBar({ blocks, selectedISO }) {
+  const today = todayISO();
+  const block = blockForDate(blocks, today);
+  const wk = block ? weekInBlock(block, today) : 1;
+  const totalWk = block ? Math.ceil(block.days / 7) : 4;
+  const left = block ? Math.max(0, diffDays(today, block.endISO)) : 0;
+  return (
+    <div className="topbar">
+      <div className="brand">HYROX<span>TRACK</span></div>
+      <div className="countdown">
+        {block ? (<>{block.name}<b>Sem {wk}/{totalWk} · faltan {left} d</b></>) : (<b>Sin bloque activo</b>)}
+      </div>
+    </div>
+  );
+}
+const TABS = [
+  { id: "dia", label: "Día", icon: "📅" },
+  { id: "rendimiento", label: "Rendimiento", icon: "🏆" },
+  { id: "progreso", label: "Progreso", icon: "📈" },
+  { id: "datos", label: "Datos", icon: "⚙️" },
+];
+function Tabbar({ tab, setTab }) {
+  return (
+    <div className="tabbar">
+      {TABS.map((t) => (
+        <button key={t.id} className={"tab-btn" + (tab === t.id ? " active" : "")} onClick={() => setTab(t.id)}>
+          <span className="ic">{t.icon}</span>{t.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/* =========================================================
+   TAB DÍA
+   ========================================================= */
+function DaySelector({ selectedISO, setSelectedISO, data, plan, blocks }) {
+  const today = todayISO();
+  const scrollRef = useRef(null);
+  const chips = [];
+  const first = addDaysISO(selectedISO, -21);
+  for (let i = 0; i < 43; i++) {
+    const iso = addDaysISO(first, i);
+    const d = fromISO(iso);
+    const dd = data.days[iso];
+    const hasLog = dd && (dd.funcionalDone || dd.fuerzaDone || dd.correrDone || (dd.meals && dd.meals.length) || dd.weight);
+    chips.push(
+      <div key={iso} data-iso={iso} className={"day-chip" + (iso === selectedISO ? " selected" : "") + (iso === today ? " today" : "")} onClick={() => setSelectedISO(iso)}>
+        <div className="dnum">{d.getDate()}</div>
+        <div className="dlabel">{WEEKDAY_NAMES[d.getDay()]}</div>
+        {hasLog && <div className="dot"></div>}
+      </div>
+    );
+  }
+  useEffect(() => {
+    if (scrollRef.current) {
+      const el = scrollRef.current.querySelector('[data-iso="' + selectedISO + '"]');
+      if (el && el.scrollIntoView) el.scrollIntoView({ inline: "center", block: "nearest" });
+    }
+  }, [selectedISO]);
+  return <div className="day-scroll" ref={scrollRef}>{chips}</div>;
+}
+
+function SetLogger({ exercise, sets, prev, onChange }) {
+  const rows = sets && sets.length ? sets : [{ w: null, r: null, rir: null }];
+  function setField(i, key, val) {
+    const next = rows.map((s, idx) => (idx === i ? { ...s, [key]: num(val) } : s));
+    onChange(next);
+  }
+  function addRow() { onChange(rows.concat([{ w: null, r: null, rir: null }])); }
+  function delRow(i) { onChange(rows.filter((_, idx) => idx !== i)); }
+  const best = rows.map((s) => e1rm(s.w, s.r, s.rir)).filter(Boolean).sort((a, b) => b - a)[0];
+  return (
+    <div className="lift-block">
+      <div className="lift-head">
+        <span className="ln">{exercise.name}</span>
+        <span className="lm">{exercise.sets}{exercise.rir ? " · " + exercise.rir : ""}</span>
+      </div>
+      {prev && <div className="lift-prev">Última vez ({fmtShort(prev.iso)}): {prev.sets.map((s) => (s.w || "?") + "×" + (s.r || "?")).join(" · ")}</div>}
+      <div className="set-row" style={{ marginBottom: 4 }}>
+        <span className="set-n"></span>
+        <span className="set-n">kg</span><span className="set-n">reps</span><span className="set-n">RIR</span><span></span>
+      </div>
+      {rows.map((s, i) => (
+        <div className="set-row" key={i}>
+          <span className="set-n">{i + 1}</span>
+          <input type="number" inputMode="decimal" value={s.w == null ? "" : s.w} onChange={(e) => setField(i, "w", e.target.value)} />
+          <input type="number" inputMode="numeric" value={s.r == null ? "" : s.r} onChange={(e) => setField(i, "r", e.target.value)} />
+          <input type="number" inputMode="numeric" value={s.rir == null ? "" : s.rir} onChange={(e) => setField(i, "rir", e.target.value)} />
+          <button className="fi-del" onClick={() => delRow(i)}>✕</button>
+        </div>
+      ))}
+      <div className="row-between" style={{ marginTop: 4 }}>
+        <button className="link-btn" onClick={addRow}>+ serie</button>
+        {best && <span className="small muted">1RM est. {best.toFixed(1)} kg</span>}
+      </div>
+    </div>
+  );
+}
+
+function ChecklistCard({ iso, plan, blocks, data, dayData, updateDay }) {
+  const sched = scheduleForDate(plan, blocks, iso);
+  const block = sched.block;
+  const routine = routineFor(sched.fuerza);
+  const nothing = !sched.funcional && !sched.fuerza && !sched.correr;
+  return (
+    <div className="card">
+      <div className="card-title">
+        <h3>{fmtLong(iso)}</h3>
+        {block && <span className="pill phase">{block.name}</span>}
+      </div>
+      {sched.funcional && (
+        <ChecklistRow label="🔥 Funcional / Hyrox" meta="Clase completa — registra el RPE al terminar"
+          done={dayData.funcionalDone} rpe={dayData.funcionalRpe}
+          onToggle={() => updateDay((d) => ({ ...d, funcionalDone: !d.funcionalDone }))}
+          onRpe={(v) => updateDay((d) => ({ ...d, funcionalRpe: v }))} />
+      )}
+      {sched.fuerza && routine && (
+        <ChecklistRow label={"🏋️ Fuerza — " + routine.title} meta={routine.cue}
+          done={dayData.fuerzaDone} rpe={dayData.fuerzaRpe}
+          onToggle={() => updateDay((d) => ({ ...d, fuerzaDone: !d.fuerzaDone }))}
+          onRpe={(v) => updateDay((d) => ({ ...d, fuerzaRpe: v }))}>
+          <div style={{ padding: "0 0 8px 0" }}>
+            <ExpandableBox label="Registrar cargas">
+              {routine.exercises.map((ex) => (
+                <SetLogger key={ex.id} exercise={ex}
+                  sets={(dayData.lifts || {})[ex.id]}
+                  prev={lastSetsFor(data, ex.id, iso)}
+                  onChange={(next) => updateDay((d) => {
+                    const lifts = { ...(d.lifts || {}) };
+                    if (!next.length) delete lifts[ex.id]; else lifts[ex.id] = next;
+                    return { ...d, lifts };
+                  })} />
+              ))}
+            </ExpandableBox>
+          </div>
+        </ChecklistRow>
+      )}
+      {sched.correr && (
+        <ChecklistRow label="🏃 Carrera Zona 2" meta={sched.correr + " min objetivo"}
+          done={dayData.correrDone} rpe={dayData.correrRpe}
+          onToggle={() => updateDay((d) => ({ ...d, correrDone: !d.correrDone }))}
+          onRpe={(v) => updateDay((d) => ({ ...d, correrRpe: v }))}>
+          <div style={{ padding: "0 4px 8px 40px" }}>
+            <div className="grid-2" style={{ marginBottom: 6 }}>
+              <div><label className="field-label">Minutos</label><input type="number" inputMode="decimal" value={dayData.correrMin == null ? "" : dayData.correrMin} onChange={(e) => updateDay((d) => ({ ...d, correrMin: num(e.target.value) }))} /></div>
+              <div><label className="field-label">Km</label><input type="number" inputMode="decimal" value={dayData.correrKm == null ? "" : dayData.correrKm} onChange={(e) => updateDay((d) => ({ ...d, correrKm: num(e.target.value) }))} /></div>
+            </div>
+            <ExpandableBox label="Protocolo"><div>{runProtocolText(sched.correr, data.profile && data.profile.hrMax)}</div></ExpandableBox>
+          </div>
+        </ChecklistRow>
+      )}
+      {nothing && <div className="empty-state small">Descanso completo 🌙 — el día libre es parte del plan, no una falla.</div>}
+    </div>
+  );
+}
+
+function SuppsCard({ dayData, updateDay }) {
+  const doneCount = SUPPS.filter((s) => dayData.supps && dayData.supps[s.id]).length;
+  return (
+    <div className="card">
+      <div className="card-title"><h3>💊 Suplementos</h3><span className={"pill" + (doneCount >= 3 ? " on" : "")}>{doneCount}/{SUPPS.length}</span></div>
+      {SUPPS.map((s) => (
+        <div key={s.id}>
+          <div className="check-row">
+            <div className={"check-box" + (dayData.supps && dayData.supps[s.id] ? " checked" : "")}
+              onClick={() => updateDay((d) => {
+                const supps = { ...(d.supps || {}) };
+                if (supps[s.id]) delete supps[s.id]; else supps[s.id] = true;
+                return { ...d, supps };
+              })}>{dayData.supps && dayData.supps[s.id] ? "✓" : ""}</div>
+            <div style={{ flex: 1 }}>
+              <div className="check-label">{s.label}</div>
+              <div className="why">{s.why}</div>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function MacroSummaryCard({ dayData, block }) {
+  const totals = (dayData.meals || []).reduce((acc, m) => ({
+    kcal: acc.kcal + (m.kcal || 0), protein: acc.protein + (m.protein || 0), carbs: acc.carbs + (m.carbs || 0), fat: acc.fat + (m.fat || 0),
+  }), { kcal: 0, protein: 0, carbs: 0, fat: 0 });
+  if (!block) return null;
+  const left = Math.round(block.kcal - totals.kcal);
+  return (
+    <div className="card">
+      <div className="card-title"><h3>Nutrición</h3><span className="pill">{block.kcal} kcal objetivo</span></div>
+      <div className="kcal-summary"><span className="big">{Math.round(totals.kcal)}</span><span className="of">/ {block.kcal} kcal</span></div>
+      <div className="small muted" style={{ marginTop: -6, marginBottom: 10 }}>{left >= 0 ? "Te quedan " + left + " kcal" : "Vas " + Math.abs(left) + " kcal por encima"}</div>
+      <MacroBar label="Proteína" value={totals.protein} target={block.protein} color="var(--green)" />
+      <MacroBar label="Carbos" value={totals.carbs} target={block.carbs} color="var(--blue)" />
+      <MacroBar label="Grasa" value={totals.fat} target={block.fat} color="var(--amber)" />
+      {totals.protein < block.protein * 0.8 && (dayData.meals || []).length > 0 && (
+        <div className="small" style={{ color: "var(--amber)", marginTop: 8 }}>Proteína baja. Post-manga es lo primero que hay que cerrar: reparte 4–5 tomas de 35–45 g.</div>
+      )}
+    </div>
+  );
+}
+
+function WeightCard({ dayData, updateDay, apiKey, profile }) {
+  const [manualOpen, setManualOpen] = useState(false);
+  const [kg, setKg] = useState(""); const [bf, setBf] = useState(""); const [mu, setMu] = useState(""); const [vis, setVis] = useState(""); const [wa, setWa] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState("");
+
+  function saveManual() {
+    const kgNum = num(kg);
+    if (!kgNum || kgNum <= 0) { setErr("Ingresa un peso válido"); return; }
+    updateDay((d) => ({ ...d, weight: { kg: kgNum, bodyFatPct: num(bf), musclePct: num(mu), visceral: num(vis), waterPct: num(wa), time: new Date().toISOString() } }));
+    setManualOpen(false); setErr(""); setKg(""); setBf(""); setMu(""); setVis(""); setWa("");
+  }
+  async function handlePhoto(e) {
+    const file = e.target.files && e.target.files[0];
+    e.target.value = "";
+    if (!file) return;
+    if (!apiKey) { setErr("Agrega tu API key en Datos primero"); return; }
+    setLoading(true); setErr("");
+    try {
+      const base64 = await fileToBase64(file);
+      const parsed = await aiParseScalePhoto(apiKey, base64, file.type || "image/jpeg");
+      if (!Number.isFinite(parsed.kg)) throw new Error("No se detectó el peso en la foto");
+      updateDay((d) => ({ ...d, weight: { kg: parsed.kg, bodyFatPct: num(parsed.bodyFatPct), musclePct: num(parsed.musclePct), visceral: num(parsed.visceral), waterPct: num(parsed.waterPct), time: new Date().toISOString() } }));
+    } catch (e2) { setErr("No se pudo leer la foto: " + e2.message); }
+    finally { setLoading(false); }
+  }
+
+  const w = dayData.weight;
+  const ffm = w && w.bodyFatPct ? w.kg * (1 - w.bodyFatPct / 100) : null;
+  return (
+    <div className="card">
+      <div className="card-title"><h3>⚖️ Peso corporal</h3></div>
+      {w ? (
+        <>
+          <div className="grid-4" style={{ marginBottom: 8 }}>
+            <div className="stat-box"><div className="sv" style={{ fontSize: 20 }}>{w.kg}</div><div className="sl">kg</div></div>
+            <div className="stat-box"><div className="sv" style={{ fontSize: 20 }}>{w.bodyFatPct == null ? "—" : w.bodyFatPct}</div><div className="sl">% grasa</div></div>
+            <div className="stat-box"><div className="sv" style={{ fontSize: 20 }}>{ffm ? ffm.toFixed(1) : "—"}</div><div className="sl">kg magros</div></div>
+            <div className="stat-box"><div className="sv" style={{ fontSize: 20 }}>{w.visceral == null ? "—" : w.visceral}</div><div className="sl">visceral</div></div>
+          </div>
+          <div className="why">La báscula de bioimpedancia estima; el número absoluto de % grasa no es exacto. Lo que sirve es la tendencia, midiendo siempre en ayunas, misma hora, después del baño.</div>
+        </>
+      ) : (<div className="empty-state small" style={{ padding: "14px 10px" }}>Sin registro este día</div>)}
+      {err && <div className="small" style={{ color: "var(--coral)", margin: "8px 0" }}>{err}</div>}
+      <div className="btn-row" style={{ marginTop: 10 }}>
+        <button className="btn" onClick={() => setManualOpen((o) => !o)}>✍️ Manual</button>
+        <label className="btn btn-secondary file-btn">{loading ? <span className="loading-dot"></span> : "📷 Foto báscula (IA)"}
+          <input type="file" accept="image/*" onChange={handlePhoto} disabled={loading} />
+        </label>
+      </div>
+      {manualOpen && (
+        <div style={{ marginTop: 10 }}>
+          <div className="grid-2">
+            <div><label className="field-label">Peso (kg)</label><input type="number" inputMode="decimal" value={kg} onChange={(e) => setKg(e.target.value)} /></div>
+            <div><label className="field-label">% grasa</label><input type="number" inputMode="decimal" value={bf} onChange={(e) => setBf(e.target.value)} /></div>
+            <div><label className="field-label">% músculo</label><input type="number" inputMode="decimal" value={mu} onChange={(e) => setMu(e.target.value)} /></div>
+            <div><label className="field-label">Visceral</label><input type="number" inputMode="decimal" value={vis} onChange={(e) => setVis(e.target.value)} /></div>
+          </div>
+          <label className="field-label">% agua</label><input type="number" inputMode="decimal" value={wa} onChange={(e) => setWa(e.target.value)} />
+          <button className="btn btn-primary" style={{ marginTop: 10 }} onClick={saveManual}>Guardar</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MealsCard({ dayData, updateDay, apiKey, frequentFoods, addFrequent }) {
+  const [textInput, setTextInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState("");
+  const [manualOpen, setManualOpen] = useState(false);
+  const [mName, setMName] = useState(""); const [mKcal, setMKcal] = useState(""); const [mP, setMP] = useState(""); const [mC, setMC] = useState(""); const [mF, setMF] = useState("");
+
+  function addMeal(meal) { updateDay((d) => ({ ...d, meals: [...(d.meals || []), { ...meal, id: "m" + Date.now() + Math.random().toString(36).slice(2), time: new Date().toISOString() }] })); }
+  function removeMeal(id) { updateDay((d) => ({ ...d, meals: (d.meals || []).filter((m) => m.id !== id) })); }
+  function addFromChip(f) { addMeal({ name: f.name, kcal: f.kcal, protein: f.protein, carbs: f.carbs, fat: f.fat, source: "frecuente" }); }
+  function saveManual() {
+    const kcalNum = num(mKcal);
+    if (!mName.trim() || kcalNum === null) { setErr("Nombre y kcal son obligatorios"); return; }
+    const meal = { name: mName.trim(), kcal: kcalNum, protein: num(mP) || 0, carbs: num(mC) || 0, fat: num(mF) || 0, source: "manual" };
+    addMeal(meal); addFrequent(meal);
+    setMName(""); setMKcal(""); setMP(""); setMC(""); setMF(""); setManualOpen(false); setErr("");
+  }
+  async function analyzeText() {
+    if (!textInput.trim()) return;
+    if (!apiKey) { setErr("Agrega tu API key en Datos primero"); return; }
+    setLoading(true); setErr("");
+    try {
+      const parsed = await aiParseMealText(apiKey, textInput);
+      const meal = { name: parsed.name || textInput.slice(0, 30), kcal: parsed.kcal || 0, protein: parsed.protein || 0, carbs: parsed.carbs || 0, fat: parsed.fat || 0, source: "ia-texto" };
+      addMeal(meal); addFrequent(meal); setTextInput("");
+    } catch (e) { setErr("No se pudo analizar: " + e.message); }
+    finally { setLoading(false); }
+  }
+  async function handlePhoto(e) {
+    const file = e.target.files && e.target.files[0];
+    e.target.value = "";
+    if (!file) return;
+    if (!apiKey) { setErr("Agrega tu API key en Datos primero"); return; }
+    setLoading(true); setErr("");
+    try {
+      const base64 = await fileToBase64(file);
+      const parsed = await aiParseMealPhoto(apiKey, base64, file.type || "image/jpeg");
+      const meal = { name: parsed.name || "Platillo", kcal: parsed.kcal || 0, protein: parsed.protein || 0, carbs: parsed.carbs || 0, fat: parsed.fat || 0, source: "ia-foto" };
+      addMeal(meal); addFrequent(meal);
+    } catch (e2) { setErr("No se pudo analizar la foto: " + e2.message); }
+    finally { setLoading(false); }
+  }
+
+  return (
+    <div className="card">
+      <div className="card-title"><h3>🍽️ Comidas</h3></div>
+      {frequentFoods.length > 0 && (
+        <div className="chip-row">{frequentFoods.slice(0, 12).map((f) => (<button key={f.id} className="food-chip" onClick={() => addFromChip(f)}>+ {f.name}</button>))}</div>
+      )}
+      <div className="btn-row" style={{ marginBottom: 8 }}>
+        <button className="btn" onClick={() => setManualOpen((o) => !o)}>✍️ Manual</button>
+        <label className="btn btn-secondary file-btn">{loading ? <span className="loading-dot"></span> : "📷 Foto (IA)"}
+          <input type="file" accept="image/*" onChange={handlePhoto} disabled={loading} />
+        </label>
+      </div>
+      <div className="seg-row">
+        <input type="text" placeholder="Describe la comida (texto → IA)" value={textInput} onChange={(e) => setTextInput(e.target.value)} />
+        <button className="btn btn-secondary" style={{ width: "auto", padding: "10px 14px" }} onClick={analyzeText} disabled={loading}>➤</button>
+      </div>
+      {err && <div className="small" style={{ color: "var(--coral)", marginBottom: 6 }}>{err}</div>}
+      {manualOpen && (
+        <div style={{ marginBottom: 10 }}>
+          <label className="field-label">Nombre</label><input type="text" value={mName} onChange={(e) => setMName(e.target.value)} />
+          <div className="grid-3" style={{ marginTop: 8 }}>
+            <div><label className="field-label">Kcal</label><input type="number" inputMode="decimal" value={mKcal} onChange={(e) => setMKcal(e.target.value)} /></div>
+            <div><label className="field-label">Prot g</label><input type="number" inputMode="decimal" value={mP} onChange={(e) => setMP(e.target.value)} /></div>
+            <div><label className="field-label">Carb g</label><input type="number" inputMode="decimal" value={mC} onChange={(e) => setMC(e.target.value)} /></div>
+          </div>
+          <label className="field-label">Grasa g</label><input type="number" inputMode="decimal" value={mF} onChange={(e) => setMF(e.target.value)} />
+          <button className="btn btn-primary" style={{ marginTop: 10 }} onClick={saveManual}>Agregar</button>
+        </div>
+      )}
+      <div className="divider"></div>
+      {(dayData.meals || []).length === 0 ? (<div className="empty-state small">Sin comidas registradas</div>) : (
+        (dayData.meals || []).map((m) => (
+          <div key={m.id} className="food-item">
+            <div><div className="fi-name">{m.name}</div><div className="fi-macro">{Math.round(m.kcal)} kcal · P{Math.round(m.protein)} C{Math.round(m.carbs)} G{Math.round(m.fat)}</div></div>
+            <button className="fi-del" onClick={() => removeMeal(m.id)}>✕</button>
+          </div>
+        ))
+      )}
+    </div>
+  );
+}
+
+function TabDia({ data, update, plan, blocks, selectedISO, setSelectedISO }) {
+  const dayData = data.days[selectedISO] || emptyDay();
+  const block = blockForDate(blocks, selectedISO);
+
+  function updateDay(fn) {
+    update((prev) => {
+      const current = prev.days[selectedISO] || emptyDay();
+      return { ...prev, days: { ...prev.days, [selectedISO]: fn(current) } };
+    });
+  }
+  function addFrequent(meal) {
+    update((prev) => {
+      if (prev.frequentFoods.some((f) => f.name.toLowerCase() === String(meal.name).toLowerCase())) return prev;
+      const nf = { id: "ff" + Date.now(), name: meal.name, kcal: meal.kcal, protein: meal.protein, carbs: meal.carbs, fat: meal.fat };
+      return { ...prev, frequentFoods: [nf, ...prev.frequentFoods].slice(0, 40) };
+    });
+  }
+  return (
+    <div>
+      <DaySelector selectedISO={selectedISO} setSelectedISO={setSelectedISO} data={data} plan={plan} blocks={blocks} />
+      <ChecklistCard iso={selectedISO} plan={plan} blocks={blocks} data={data} dayData={dayData} updateDay={updateDay} />
+      <MacroSummaryCard dayData={dayData} block={block} />
+      <WeightCard dayData={dayData} updateDay={updateDay} apiKey={data.apiKey} profile={data.profile} />
+      <MealsCard dayData={dayData} updateDay={updateDay} apiKey={data.apiKey} frequentFoods={data.frequentFoods} addFrequent={addFrequent} />
+      <SuppsCard dayData={dayData} updateDay={updateDay} />
+    </div>
+  );
+}
+
+/* =========================================================
+   TAB RENDIMIENTO
+   ========================================================= */
+function PerfForm({ kind, onAdd, apiKey, selectedISO }) {
+  const [open, setOpen] = useState(false);
+  const [duration, setDuration] = useState(""); const [hrAvg, setHrAvg] = useState(""); const [hrMax, setHrMax] = useState("");
+  const [rpe, setRpe] = useState(null); const [notes, setNotes] = useState("");
+  const [segments, setSegments] = useState([{ label: "", value: "" }]);
+  const [subType, setSubType] = useState("running");
+  const [loading, setLoading] = useState(false); const [err, setErr] = useState("");
+
+  function updateSeg(i, key, val) { setSegments((s) => s.map((seg, idx) => (idx === i ? { ...seg, [key]: val } : seg))); }
+  function reset() { setDuration(""); setHrAvg(""); setHrMax(""); setRpe(null); setNotes(""); setSegments([{ label: "", value: "" }]); setOpen(false); }
+  function save() {
+    const durNum = num(duration);
+    if (durNum === null) { setErr("Ingresa la duración"); return; }
+    onAdd({
+      type: kind === "hyrox" ? "hyrox" : subType,
+      durationMin: durNum, hrAvg: num(hrAvg), hrMax: num(hrMax), rpe, notes,
+      segments: segments.filter((s) => s.label.trim() || s.value.trim()),
+      dateISO: selectedISO,
+    });
+    reset(); setErr("");
+  }
+  async function handlePhoto(e) {
+    const file = e.target.files && e.target.files[0];
+    e.target.value = "";
+    if (!file) return;
+    if (!apiKey) { setErr("Agrega tu API key en Datos primero"); return; }
+    setLoading(true); setErr("");
+    try {
+      const base64 = await fileToBase64(file);
+      const parsed = await aiParseWatchPhoto(apiKey, base64, file.type || "image/jpeg");
+      if (Number.isFinite(parsed.durationMin)) setDuration(String(parsed.durationMin));
+      if (Number.isFinite(parsed.hrAvg)) setHrAvg(String(parsed.hrAvg));
+      if (Number.isFinite(parsed.hrMax)) setHrMax(String(parsed.hrMax));
+      if (Number.isFinite(parsed.km)) setSegments([{ label: "Distancia", value: String(parsed.km) + " km" }]);
+      setOpen(true);
+    } catch (e2) { setErr("No se pudo leer la foto: " + e2.message); }
+    finally { setLoading(false); }
+  }
+
+  return (
+    <div>
+      <div className="btn-row" style={{ marginBottom: 8 }}>
+        <button className="btn btn-primary" onClick={() => setOpen((o) => !o)}>{open ? "Cancelar" : "+ Agregar"}</button>
+        <label className="btn btn-secondary file-btn">{loading ? <span className="loading-dot"></span> : "⌚ Foto Watch (IA)"}
+          <input type="file" accept="image/*" onChange={handlePhoto} disabled={loading} />
+        </label>
+      </div>
+      {err && <div className="small" style={{ color: "var(--coral)", marginBottom: 6 }}>{err}</div>}
+      {open && (
+        <div style={{ marginBottom: 12 }}>
+          {kind === "secondary" && (
+            <div className="btn-row" style={{ marginBottom: 8 }}>
+              <button className={"btn" + (subType === "running" ? " btn-secondary" : "")} onClick={() => setSubType("running")}>🏃 Correr</button>
+              <button className={"btn" + (subType === "fuerza" ? " btn-secondary" : "")} onClick={() => setSubType("fuerza")}>🏋️ Fuerza</button>
+            </div>
+          )}
+          <div className="grid-3">
+            <div><label className="field-label">Duración (min)</label><input type="number" inputMode="decimal" value={duration} onChange={(e) => setDuration(e.target.value)} /></div>
+            <div><label className="field-label">FC prom</label><input type="number" inputMode="decimal" value={hrAvg} onChange={(e) => setHrAvg(e.target.value)} /></div>
+            <div><label className="field-label">FC máx</label><input type="number" inputMode="decimal" value={hrMax} onChange={(e) => setHrMax(e.target.value)} /></div>
+          </div>
+          <label className="field-label">RPE</label>
+          <RpeSelect value={rpe} onChange={setRpe} />
+          <label className="field-label">Segmentos (splits / estaciones / pesos)</label>
+          {segments.map((s, i) => (
+            <div className="seg-row" key={i}>
+              <input type="text" placeholder="Nombre" value={s.label} onChange={(e) => updateSeg(i, "label", e.target.value)} />
+              <input type="text" placeholder="Valor" value={s.value} onChange={(e) => updateSeg(i, "value", e.target.value)} />
+              <button className="fi-del" onClick={() => setSegments((sg) => sg.filter((_, idx) => idx !== i))}>✕</button>
+            </div>
+          ))}
+          <button className="link-btn" onClick={() => setSegments((s) => s.concat([{ label: "", value: "" }]))}>+ Agregar segmento</button>
+          <label className="field-label">Notas</label>
+          <textarea value={notes} onChange={(e) => setNotes(e.target.value)} />
+          <button className="btn btn-primary" style={{ marginTop: 10 }} onClick={save}>Guardar</button>
+        </div>
+      )}
+    </div>
+  );
+}
+function PerfHistory({ entries }) {
+  if (!entries.length) return <div className="empty-state small">Sin registros aún</div>;
+  const sorted = [...entries].sort((a, b) => (a.dateISO < b.dateISO ? 1 : -1));
+  return (
+    <div>
+      {sorted.map((e) => (
+        <div key={e.id} className="history-item">
+          <div className="hi-top">
+            <span>{e.type === "hyrox" ? "🏆 Hyrox" : e.type === "fuerza" ? "🏋️ Fuerza" : "🏃 Correr"} · {fmtShort(e.dateISO)}</span>
+            <span>{e.durationMin} min</span>
+          </div>
+          <div className="hi-meta">{e.hrAvg ? "FC prom " + e.hrAvg + " · " : ""}{e.hrMax ? "FC máx " + e.hrMax + " · " : ""}{e.rpe ? "RPE " + e.rpe : ""}</div>
+          {e.segments && e.segments.length > 0 && <div className="hi-meta">{e.segments.map((s) => s.label + ": " + s.value).join(" · ")}</div>}
+          {e.notes && <div className="hi-meta">{e.notes}</div>}
+        </div>
+      ))}
+    </div>
+  );
+}
+function TabRendimiento({ data, update, selectedISO }) {
+  function addEntry(kind, entry) {
+    update((prev) => {
+      const withId = { ...entry, id: "p" + Date.now() + Math.random().toString(36).slice(2) };
+      const key = kind === "hyrox" ? "hyrox" : "secondary";
+      return { ...prev, performance: { ...prev.performance, [key]: [...prev.performance[key], withId] } };
+    });
+  }
+  return (
+    <div>
+      <div className="card">
+        <div className="card-title"><h3>🏆 Simulacros Hyrox</h3></div>
+        <p className="small muted">Guarda aquí los simulacros y carreras completas. Sin competencia cerca, uno cada 6–8 semanas basta para medir.</p>
+        <PerfForm kind="hyrox" onAdd={(e) => addEntry("hyrox", e)} apiKey={data.apiKey} selectedISO={selectedISO} />
+        <div className="divider"></div>
+        <PerfHistory entries={data.performance.hyrox} />
+      </div>
+      <div className="card">
+        <div className="card-title"><h3>🏃🏋️ Carrera / Fuerza</h3></div>
+        <PerfForm kind="secondary" onAdd={(e) => addEntry("secondary", e)} apiKey={data.apiKey} selectedISO={selectedISO} />
+        <div className="divider"></div>
+        <PerfHistory entries={data.performance.secondary} />
+      </div>
+    </div>
+  );
+}
+
+/* =========================================================
+   TAB PROGRESO
+   ========================================================= */
+function buildSeries(data, pick) {
+  const pts = [];
+  Object.keys(data.days).sort().forEach((iso) => {
+    const v = pick(data.days[iso], iso);
+    if (Number.isFinite(v)) pts.push({ iso, y: v });
+  });
+  return pts;
+}
+function LineChart({ points, color, height, targetPoints }) {
+  const width = 320; const h = height || 120; const pad = 8;
+  const hasPoints = points && points.length > 0;
+  const hasTarget = targetPoints && targetPoints.length > 0;
+  if (!hasPoints && !hasTarget) return <div className="empty-state small">Aún no hay datos suficientes</div>;
+  const all = (hasPoints ? points : []).concat(hasTarget ? targetPoints : []);
+  const base = all[0].iso;
+  const xs = all.map((p) => diffDays(base, p.iso));
+  const ys = all.map((p) => p.y);
+  const minX = Math.min.apply(null, xs), maxX = Math.max.apply(null, xs);
+  const minY = Math.min.apply(null, ys), maxY = Math.max.apply(null, ys);
+  const rangeX = (maxX - minX) || 1, rangeY = (maxY - minY) || 1;
+  function sx(iso) { return pad + (width - 2 * pad) * ((diffDays(base, iso) - minX) / rangeX); }
+  function sy(y) { return h - pad - (h - 2 * pad) * ((y - minY) / rangeY); }
+  function toPath(arr) { return arr.map((p, i) => (i === 0 ? "M" : "L") + sx(p.iso).toFixed(1) + "," + sy(p.y).toFixed(1)).join(" "); }
+  const last = hasPoints ? points[points.length - 1] : null;
+  return (
+    <svg viewBox={"0 0 " + width + " " + h} style={{ width: "100%", height: h }} preserveAspectRatio="none">
+      {hasTarget && <path d={toPath(targetPoints)} fill="none" stroke={COLOR.faint} strokeWidth="1.5" strokeDasharray="4,3" />}
+      {hasPoints && <path d={toPath(points)} fill="none" stroke={color} strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />}
+      {last && <circle cx={sx(last.iso)} cy={sy(last.y)} r="3.5" fill={color} />}
+    </svg>
+  );
+}
+function ChartCard({ title, unit, points, color, targetPoints, foot }) {
+  return (
+    <div className="card">
+      <div className="card-title"><h3 style={{ fontSize: 16 }}>{title}</h3>{points.length > 0 && <span className="pill">{points[points.length - 1].y.toFixed(1)} {unit}</span>}</div>
+      <LineChart points={points} color={color} targetPoints={targetPoints} />
+      {foot && <div className="why" style={{ marginTop: 6 }}>{foot}</div>}
+    </div>
+  );
+}
+
+function BlockReviewCard({ data, update, plan, blocks }) {
+  const today = todayISO();
+  const block = blockForDate(blocks, today);
+  if (!block) return null;
+  const est = estimateTdee(data, block.startISO, today < block.endISO ? today : block.endISO);
+  const adh = adherenceInRange(data, plan, blocks, block.startISO, block.endISO);
+  const band = targetBand(block.goal);
+  const next = blocks[block.index] || null;
+  const verdict = est.ok ? verdictFor(block.goal, est.pctPerWeek) : null;
+  const suggested = est.ok ? suggestKcal(est.tdee, next ? next.goal : block.goal, est.lastKg) : null;
+  const suggestedMacros = suggested ? macrosFor(suggested, est.ok ? est.lastKg : 78, next ? next.goal : block.goal) : null;
+
+  function applySuggestion() {
+    if (!next || !suggested || !suggestedMacros) return;
+    update((prev) => ({
+      ...prev,
+      plan: {
+        ...prev.plan,
+        maintenanceKcal: est.tdee,
+        blocks: prev.plan.blocks.map((b) => (b.id === next.id ? { ...b, kcal: suggested, protein: suggestedMacros.protein, carbs: suggestedMacros.carbs, fat: suggestedMacros.fat } : b)),
+      },
+      reviews: [...prev.reviews, { blockId: block.id, closedAt: today, weightStart: null, weightEnd: est.lastKg, tdee: est.tdee, adherence: adh.pct, avgKcal: est.avgKcal, notes: "Ajuste automático a " + suggested + " kcal" }],
+    }));
+  }
+
+  const weeks = Math.ceil(block.days / 7);
+  const wkNow = weekInBlock(block, today);
+  return (
+    <div className="card">
+      <div className="card-title"><h3>🔁 Bloque actual</h3><span className="pill phase">{block.name}</span></div>
+      <div className="block-bar">
+        {Array.from({ length: weeks }).map((_, i) => (
+          <div key={i} className={"block-seg" + (i + 1 < wkNow ? " done" : i + 1 === wkNow ? " now" : "")}></div>
+        ))}
+      </div>
+      <div className="small muted" style={{ marginBottom: 10 }}>{fmtShort(block.startISO)} – {fmtShort(block.endISO)} · objetivo {block.kcal} kcal · ritmo meta {band.label}</div>
+      {block.note && <div className="why" style={{ marginBottom: 10 }}>{block.note}</div>}
+      <KV k="Adherencia" v={adh.pct + "% (" + adh.done + "/" + adh.scheduled + ")"} />
+      <KV k="RPE promedio" v={adh.avgRpe} />
+      {est.ok ? (
+        <>
+          <KV k="Ingesta media real" v={est.avgKcal + " kcal (" + est.loggedDays + " días)"} />
+          <KV k="Gasto real estimado" v={est.tdee + " kcal/día"} />
+          <KV k="Ritmo" v={(est.kgPerWeek >= 0 ? "+" : "") + est.kgPerWeek.toFixed(2) + " kg/sem (" + est.pctPerWeek.toFixed(2) + "%)"} />
+          <div style={{ margin: "10px 0" }}><span className={"tag " + verdict.tag}>{verdict.text}</span></div>
+          {next && suggested && (
+            <>
+              <div className="why">Para <b>{next.name}</b> ({next.goal === "cut" ? "déficit" : next.goal === "lean" ? "superávit magro" : "mantenimiento"}) la app propone <b>{suggested} kcal</b> — P{suggestedMacros.protein} C{suggestedMacros.carbs} G{suggestedMacros.fat}.</div>
+              <button className="btn btn-primary" style={{ marginTop: 10 }} onClick={applySuggestion}>Aplicar al siguiente bloque</button>
+            </>
+          )}
+        </>
+      ) : (
+        <div className="why" style={{ marginTop: 8 }}>Aún no puedo calcular tu gasto real. {est.reason} Registra comidas casi todos los días y písate la báscula 2–3 veces por semana: con eso la app calcula tu TDEE en vez de adivinarlo.</div>
+      )}
+    </div>
+  );
+}
+
+function LiftProgressCard({ data }) {
+  const byLift = useMemo(() => bestE1rmByLift(data), [data]);
+  const rows = KEY_LIFTS.map((id) => {
+    const arr = byLift[id];
+    if (!arr || !arr.length) return null;
+    const first = arr[0], last = arr[arr.length - 1];
+    const delta = last.value - first.value;
+    return { id, first, last, delta, n: arr.length };
+  }).filter(Boolean);
+  return (
+    <div className="card">
+      <div className="card-title"><h3>🏋️ Fuerza (1RM estimado)</h3></div>
+      {rows.length === 0 ? (
+        <div className="empty-state small">Registra cargas en los días de fuerza y aquí verás si estás manteniendo fuerza durante el déficit.</div>
+      ) : (
+        <>
+          {rows.map((r) => (
+            <KV key={r.id} k={liftName(r.id)} v={r.last.value.toFixed(1) + " kg (" + (r.delta >= 0 ? "+" : "") + r.delta.toFixed(1) + ")"} />
+          ))}
+          <div className="why" style={{ marginTop: 8 }}>En déficit la meta es <b>mantener</b> fuerza, no subirla. Si dos levantamientos principales caen más de 5% dos semanas seguidas, el déficit es demasiado grande o falta sueño.</div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function TabProgreso({ data, update, plan, blocks }) {
+  const today = todayISO();
+  const weightSeries = useMemo(() => buildSeries(data, (d) => (d.weight ? d.weight.kg : null)), [data]);
+  const fatSeries = useMemo(() => buildSeries(data, (d) => (d.weight ? d.weight.bodyFatPct : null)), [data]);
+  const ffmSeries = useMemo(() => buildSeries(data, (d) => (d.weight && d.weight.bodyFatPct ? d.weight.kg * (1 - d.weight.bodyFatPct / 100) : null)), [data]);
+  const kcalSeries = useMemo(() => buildSeries(data, (d) => dayKcal(d)), [data]);
+  const kcalTarget = useMemo(() => kcalSeries.map((p) => { const b = blockForDate(blocks, p.iso); return { iso: p.iso, y: b ? b.kcal : 2200 }; }), [kcalSeries, blocks]);
+  const hrSeries = useMemo(() => {
+    const byDay = {};
+    data.performance.hyrox.concat(data.performance.secondary).forEach((e) => {
+      if (Number.isFinite(e.hrAvg) && e.dateISO) { if (!byDay[e.dateISO]) byDay[e.dateISO] = []; byDay[e.dateISO].push(e.hrAvg); }
+    });
+    return Object.keys(byDay).sort().map((iso) => ({ iso, y: byDay[iso].reduce((a, b) => a + b, 0) / byDay[iso].length }));
+  }, [data]);
+
+  const firstW = weightSeries.length ? weightSeries[0] : null;
+  const lastW = weightSeries.length ? weightSeries[weightSeries.length - 1] : null;
+  const totalDelta = firstW && lastW ? lastW.y - firstW.y : null;
+  const adhAll = adherenceInRange(data, plan, blocks, plan.startDate, today);
+
+  return (
+    <div>
+      <div className="card">
+        <div className="stat-grid">
+          <div className="stat-box"><div className="sv">{adhAll.pct}%</div><div className="sl">Adherencia</div></div>
+          <div className="stat-box"><div className="sv">{lastW ? lastW.y.toFixed(1) : "—"}</div><div className="sl">kg actual</div></div>
+          <div className="stat-box"><div className="sv">{totalDelta === null ? "—" : (totalDelta >= 0 ? "+" : "") + totalDelta.toFixed(1)}</div><div className="sl">kg vs inicio</div></div>
+        </div>
+      </div>
+      <BlockReviewCard data={data} update={update} plan={plan} blocks={blocks} />
+      <ChartCard title="Peso" unit="kg" points={weightSeries} color={COLOR.coral} foot="Pésate en ayunas, misma hora. El día a día sube y baja 1–2 kg por agua y sal; lo que importa es la línea." />
+      <ChartCard title="% Grasa corporal" unit="%" points={fatSeries} color={COLOR.amber} />
+      <ChartCard title="Masa magra estimada" unit="kg" points={ffmSeries} color={COLOR.teal} foot="Si esta línea baja mientras el peso baja, estás perdiendo músculo: sube proteína y baja el déficit." />
+      <ChartCard title="Kcal real vs objetivo" unit="kcal" points={kcalSeries} targetPoints={kcalTarget} color={COLOR.blue} />
+      <LiftProgressCard data={data} />
+      <ChartCard title="FC promedio entrenamientos" unit="bpm" points={hrSeries} color={COLOR.green} />
+    </div>
+  );
+}
+
+/* =========================================================
+   TAB DATOS
+   ========================================================= */
+function TabDatos({ data, update, setData, blocks }) {
+  const [apiKeyInput, setApiKeyInput] = useState(data.apiKey || "");
+  const [newFoodName, setNewFoodName] = useState(""); const [newFoodKcal, setNewFoodKcal] = useState("");
+  const [newFoodP, setNewFoodP] = useState(""); const [newFoodC, setNewFoodC] = useState(""); const [newFoodF, setNewFoodF] = useState("");
+  const [exportText, setExportText] = useState("");
+  const [importText, setImportText] = useState("");
+  const [msg, setMsg] = useState("");
+  const [resetArmed, setResetArmed] = useState(false);
+  const [persistState, setPersistState] = useState("");
+  const standalone = isStandalone();
+  const backupAge = daysSince(data.lastExportAt);
+
+  useEffect(() => { let alive = true; requestPersistence().then((r) => { if (alive) setPersistState(r); }); return () => { alive = false; }; }, []);
+
+  function flash(t) { setMsg(t); setTimeout(() => setMsg(""), 2500); }
+  function doFileExport() {
+    try { downloadBackup(data); update((prev) => ({ ...prev, lastExportAt: new Date().toISOString() })); flash("Respaldo generado — guárdalo en Archivos o iCloud"); }
+    catch (e) { flash("No se pudo generar el archivo: " + e.message); }
+  }
+  async function doFileImport(e) {
+    const file = e.target.files && e.target.files[0];
+    e.target.value = "";
+    if (!file) return;
+    try {
+      const text = await readTextFile(file);
+      const parsed = sanitizeData(JSON.parse(text));
+      setData(parsed);
+      flash("Restaurado: " + Object.keys(parsed.days).length + " días recuperados");
+    } catch (e2) { flash("Ese archivo no se pudo leer: " + e2.message); }
+  }
+  function saveApiKey() { update((prev) => ({ ...prev, apiKey: apiKeyInput.trim() })); flash("API key guardada"); }
+  function addFood() {
+    const kcalNum = num(newFoodKcal);
+    if (!newFoodName.trim() || kcalNum === null) return;
+    update((prev) => ({ ...prev, frequentFoods: [{ id: "ff" + Date.now(), name: newFoodName.trim(), kcal: kcalNum, protein: num(newFoodP) || 0, carbs: num(newFoodC) || 0, fat: num(newFoodF) || 0 }, ...prev.frequentFoods] }));
+    setNewFoodName(""); setNewFoodKcal(""); setNewFoodP(""); setNewFoodC(""); setNewFoodF("");
+  }
+  function removeFood(id) { update((prev) => ({ ...prev, frequentFoods: prev.frequentFoods.filter((f) => f.id !== id) })); }
+  function setBlockField(id, field, val) {
+    update((prev) => ({ ...prev, plan: { ...prev.plan, blocks: prev.plan.blocks.map((b) => (b.id === id ? { ...b, [field]: field === "name" || field === "note" ? val : (num(val) || 0) } : b)) } }));
+  }
+  function addBlock() {
+    update((prev) => {
+      const last = prev.plan.blocks[prev.plan.blocks.length - 1] || DEFAULT_BLOCKS[0];
+      const nb = { ...last, id: "b" + Date.now(), name: "Bloque " + (prev.plan.blocks.length + 1), note: "" };
+      return { ...prev, plan: { ...prev.plan, blocks: prev.plan.blocks.concat([nb]) } };
+    });
+  }
+  function removeBlock(id) { update((prev) => ({ ...prev, plan: { ...prev.plan, blocks: prev.plan.blocks.length > 1 ? prev.plan.blocks.filter((b) => b.id !== id) : prev.plan.blocks } })); }
+  function doExport() { setExportText(JSON.stringify(data)); update((prev) => ({ ...prev, lastExportAt: new Date().toISOString() })); }
+  function doImport() {
+    try { setData(sanitizeData(JSON.parse(importText))); flash("Datos restaurados"); setImportText(""); }
+    catch (e) { flash("JSON inválido: " + e.message); }
+  }
+  function doReset() {
+    if (!resetArmed) { setResetArmed(true); setTimeout(() => setResetArmed(false), 4000); return; }
+    setData(emptyData()); setResetArmed(false); flash("Datos reiniciados");
+  }
+
+  return (
+    <div>
+      <div className="card">
+        <div className="card-title"><h3>🔑 API key</h3></div>
+        <p className="small muted">Se usa para macros por IA y lectura de fotos. Se guarda solo en este dispositivo.</p>
+        <input type="password" placeholder="sk-ant-..." value={apiKeyInput} onChange={(e) => setApiKeyInput(e.target.value)} />
+        <button className="btn btn-primary" style={{ marginTop: 8 }} onClick={saveApiKey}>Guardar</button>
+      </div>
+
+      <div className="card">
+        <div className="card-title"><h3>🫀 Perfil y zonas de frecuencia cardiaca</h3></div>
+        <div className="grid-2">
+          <div><label className="field-label">Altura (cm)</label>
+            <input type="number" value={data.profile.heightCm} onChange={(e) => update((prev) => ({ ...prev, profile: { ...prev.profile, heightCm: num(e.target.value) || 174 } }))} /></div>
+          <div><label className="field-label">FC máx (bpm)</label>
+            <input type="number" value={data.profile.hrMax} onChange={(e) => update((prev) => ({ ...prev, profile: { ...prev.profile, hrMax: clip(num(e.target.value) || 185, 120, 230) } }))} /></div>
+        </div>
+        <div style={{ marginTop: 10 }}>
+          {hrZones(data.profile.hrMax).map((z) => (<KV key={z.name} k={z.name} v={z.lo + "–" + z.hi + " bpm"} />))}
+        </div>
+        <div className="why" style={{ marginTop: 8 }}>185 bpm es una estimación por edad (fórmula de Tanaka), con un margen de ±10 bpm. Cuando tengas una FC máxima real del reloj en un esfuerzo duro, cámbiala aquí y las zonas se recalculan solas.</div>
+      </div>
+
+      <div className="card">
+        <div className="card-title"><h3>🗓️ Plan</h3></div>
+        <div className="grid-2">
+          <div><label className="field-label">Inicio del plan</label>
+            <input type="date" value={data.plan.startDate} onChange={(e) => update((prev) => ({ ...prev, plan: { ...prev.plan, startDate: e.target.value || DEFAULT_START } }))} /></div>
+          <div><label className="field-label">Día de carrera</label>
+            <select value={String(data.plan.runDay)} onChange={(e) => update((prev) => ({ ...prev, plan: { ...prev.plan, runDay: parseInt(e.target.value, 10) } }))}>
+              <option value="6">Sábado</option>
+              <option value="0">Domingo</option>
+            </select></div>
+        </div>
+        <div className="why" style={{ marginTop: 8 }}>Horario fijo: lunes, miércoles y viernes funcional · martes y jueves fuerza · {data.plan.runDay === 0 ? "domingo" : "sábado"} carrera Z2 · el otro día del fin de semana, descanso completo.</div>
+      </div>
+
+      <div className="card">
+        <div className="card-title"><h3>📋 Bloques de 4 semanas</h3><span className="pill">{blocks.length}</span></div>
+        {blocks.map((b) => (
+          <div key={b.id} style={{ marginBottom: 14, paddingBottom: 12, borderBottom: "1px solid var(--line)" }}>
+            <div className="row-between" style={{ marginBottom: 6 }}>
+              <b className="small">{b.index}. {b.name}</b>
+              <span className="small muted">{fmtShort(b.startISO)} – {fmtShort(b.endISO)}</span>
+            </div>
+            <div className="grid-3" style={{ marginBottom: 6 }}>
+              <div><label className="field-label">Días</label><input type="number" value={b.days} onChange={(e) => setBlockField(b.id, "days", e.target.value)} /></div>
+              <div><label className="field-label">Kcal</label><input type="number" value={b.kcal} onChange={(e) => setBlockField(b.id, "kcal", e.target.value)} /></div>
+              <div><label className="field-label">Correr base (min)</label><input type="number" value={b.runBase} onChange={(e) => setBlockField(b.id, "runBase", e.target.value)} /></div>
+            </div>
+            <div className="grid-3">
+              <div><label className="field-label">Prot g</label><input type="number" value={b.protein} onChange={(e) => setBlockField(b.id, "protein", e.target.value)} /></div>
+              <div><label className="field-label">Carb g</label><input type="number" value={b.carbs} onChange={(e) => setBlockField(b.id, "carbs", e.target.value)} /></div>
+              <div><label className="field-label">Grasa g</label><input type="number" value={b.fat} onChange={(e) => setBlockField(b.id, "fat", e.target.value)} /></div>
+            </div>
+            <div className="row-between" style={{ marginTop: 8 }}>
+              <span className="small muted">{Math.round(b.protein * 4 + b.carbs * 4 + b.fat * 9)} kcal según macros</span>
+              <button className="link-btn" onClick={() => removeBlock(b.id)}>Eliminar</button>
+            </div>
+          </div>
+        ))}
+        <button className="btn btn-secondary" onClick={addBlock}>+ Agregar bloque</button>
+      </div>
+
+      <div className="card">
+        <div className="card-title"><h3>🍽️ Alimentos frecuentes</h3></div>
+        <label className="field-label">Nombre</label>
+        <input type="text" value={newFoodName} onChange={(e) => setNewFoodName(e.target.value)} />
+        <div className="grid-3" style={{ marginTop: 8 }}>
+          <div><label className="field-label">Kcal</label><input type="number" inputMode="decimal" value={newFoodKcal} onChange={(e) => setNewFoodKcal(e.target.value)} /></div>
+          <div><label className="field-label">Prot</label><input type="number" inputMode="decimal" value={newFoodP} onChange={(e) => setNewFoodP(e.target.value)} /></div>
+          <div><label className="field-label">Carb</label><input type="number" inputMode="decimal" value={newFoodC} onChange={(e) => setNewFoodC(e.target.value)} /></div>
+        </div>
+        <label className="field-label">Grasa</label><input type="number" inputMode="decimal" value={newFoodF} onChange={(e) => setNewFoodF(e.target.value)} />
+        <button className="btn btn-secondary" style={{ marginTop: 8 }} onClick={addFood}>+ Agregar</button>
+        <div className="divider"></div>
+        {data.frequentFoods.map((f) => (
+          <div key={f.id} className="food-item">
+            <div><div className="fi-name">{f.name}</div><div className="fi-macro">{f.kcal} kcal · P{f.protein} C{f.carbs} G{f.fat}</div></div>
+            <button className="fi-del" onClick={() => removeFood(f.id)}>✕</button>
+          </div>
+        ))}
+      </div>
+
+      <div className="card">
+        <div className="card-title"><h3>💾 Respaldo</h3><span className={"pill" + (backupAge !== null && backupAge <= 5 ? " on" : "")}>{backupAge === null ? "nunca" : backupAge === 0 ? "hoy" : "hace " + backupAge + " d"}</span></div>
+        <p className="small muted">Safari borra los datos de un sitio si pasas 7 días sin abrirlo. El archivo de respaldo vive en tu iPhone, fuera de Safari, y eso no lo borra nadie.</p>
+        <button className="btn btn-primary" onClick={doFileExport}>⬇️ Guardar respaldo en Archivos</button>
+        <div className="why" style={{ marginTop: 6 }}>Se guarda como <b>{backupFilename()}</b>. Elige iCloud Drive para tenerlo en todos lados.</div>
+        <div className="divider"></div>
+        <label className="field-label">Restaurar desde archivo</label>
+        <label className="btn btn-secondary file-btn">📁 Elegir archivo de respaldo
+          <input type="file" accept=".json,application/json,text/plain" onChange={doFileImport} />
+        </label>
+        <div className="divider"></div>
+        <button className="btn" onClick={doExport}>Copiar respaldo como texto</button>
+        {exportText && <textarea readOnly value={exportText} style={{ marginTop: 8, minHeight: 90, fontSize: 11 }} onFocus={(e) => e.target.select()} />}
+        <label className="field-label">Restaurar pegando el texto</label>
+        <textarea value={importText} onChange={(e) => setImportText(e.target.value)} placeholder="Pega aquí el JSON exportado" />
+        <button className="btn btn-secondary" style={{ marginTop: 8 }} onClick={doImport} disabled={!importText.trim()}>Restaurar</button>
+      </div>
+
+      <div className="card">
+        <div className="card-title"><h3>🔒 Dónde viven tus datos</h3></div>
+        <KV k="Modo de apertura" v={standalone ? "App de pantalla de inicio" : "Safari"} />
+        <KV k="Almacenamiento persistente" v={persistState === "concedido" ? "Concedido ✓" : persistState === "denegado" ? "No concedido" : persistState === "no-soportado" ? "No disponible" : "Consultando…"} />
+        <KV k="Días registrados" v={String(Object.keys(data.days).length)} />
+        <KV k="Último respaldo" v={backupAge === null ? "Nunca" : backupAge === 0 ? "Hoy" : "Hace " + backupAge + " días"} />
+        <div className="why" style={{ marginTop: 10 }}>
+          {standalone
+            ? "Estás en la app de la pantalla de inicio. Esta es la forma recomendada: iOS le da almacenamiento propio y la protege del borrado por inactividad. Ojo: si abres la misma dirección en Safari vas a ver la app vacía, porque son dos memorias distintas. Usa siempre este ícono."
+            : "Estás abriendo desde Safari. Aquí iOS borra los datos si pasas 7 días sin entrar. Agrégala a la pantalla de inicio y usa solo ese ícono: esa versión tiene su propia memoria y queda exenta del borrado."}
+        </div>
+      </div>
+
+      {msg && <div className="banner">{msg}</div>}
+
+      <div className="card">
+        <div className="card-title"><h3>⚠️ Zona de riesgo</h3></div>
+        <p className="small muted">Borra todo el progreso guardado en este dispositivo. Exporta un respaldo antes.</p>
+        <button className="btn btn-danger" onClick={doReset}>{resetArmed ? "Toca de nuevo para confirmar" : "🔄 Reiniciar datos"}</button>
+      </div>
+    </div>
+  );
+}
+
+/* =========================================================
+   APP RAÍZ
+   ========================================================= */
+function App() {
+  const [data, setData] = useState(() => loadData());
+  const [tab, setTab] = useState("dia");
+  const [selectedISO, setSelectedISO] = useState(() => todayISO());
+  const [saveError, setSaveError] = useState(false);
+
+  useEffect(() => { setSaveError(!saveData(data)); }, [data]);
+  useEffect(() => { requestPersistence(); }, []);
+  const update = useCallback((fn) => { setData((prev) => (typeof fn === "function" ? fn(prev) : fn)); }, []);
+
+  const plan = data.plan;
+  const blocks = useMemo(() => normalizeBlocks(plan.blocks, plan.startDate), [plan.blocks, plan.startDate]);
+
+  const daysSinceExport = useMemo(() => {
+    if (!data.lastExportAt) return null;
+    return Math.floor((Date.now() - new Date(data.lastExportAt).getTime()) / 86400000);
+  }, [data.lastExportAt]);
+  const loggedDays = Object.keys(data.days).length;
+  const backupUrgent = daysSinceExport === null ? loggedDays > 5 : daysSinceExport > 7;
+  const showBackupBanner = daysSinceExport === null ? loggedDays > 1 : daysSinceExport > 4;
+  const planEnded = blocks.length > 0 && todayISO() > blocks[blocks.length - 1].endISO;
+
+  return (
+    <div className="app-shell">
+      <TopBar blocks={blocks} selectedISO={selectedISO} />
+      {!data.apiKey && (
+        <div className="banner">⚠️ Agrega tu API key en <b>Datos</b> para usar macros por IA y fotos.<button onClick={() => setTab("datos")}>Ir</button></div>
+      )}
+      {showBackupBanner && (
+        <div className={"banner" + (backupUrgent ? " err" : "")}>
+          {daysSinceExport === null
+            ? "🗂️ Nunca has guardado un respaldo. Safari borra los datos si pasas 7 días sin abrir la app."
+            : "🗂️ Llevas " + daysSinceExport + " días sin respaldar. A los 7 días sin abrir la app, Safari borra todo."}
+          <button onClick={() => setTab("datos")}>Respaldar</button>
+        </div>
+      )}
+      {saveError && <div className="banner err">⚠️ No se pudo guardar en este dispositivo (memoria llena o modo privado).</div>}
+      {planEnded && (
+        <div className="banner">🏁 El último bloque terminó el {fmtShort(blocks[blocks.length - 1].endISO)}. Agrega el siguiente en <b>Datos</b>.<button onClick={() => setTab("datos")}>Ir</button></div>
+      )}
+      <ErrorBoundary key={tab}>
+        {tab === "dia" && <TabDia data={data} update={update} plan={plan} blocks={blocks} selectedISO={selectedISO} setSelectedISO={setSelectedISO} />}
+        {tab === "rendimiento" && <TabRendimiento data={data} update={update} selectedISO={selectedISO} />}
+        {tab === "progreso" && <TabProgreso data={data} update={update} plan={plan} blocks={blocks} />}
+        {tab === "datos" && <TabDatos data={data} update={update} setData={setData} blocks={blocks} />}
+      </ErrorBoundary>
+      <Tabbar tab={tab} setTab={setTab} />
+    </div>
+  );
+}
+
+/* =========================================================
+   MONTAJE
+   ========================================================= */
+window.addEventListener("error", function (e) { console.error("Error global:", e.error || e.message); });
+window.addEventListener("unhandledrejection", function (e) { console.error("Promesa no manejada:", e.reason); });
+
+const __rootEl = document.getElementById("root");
+const __root = ReactDOM.createRoot(__rootEl);
+__root.render(
+  <ErrorBoundary>
+    <App />
+  </ErrorBoundary>
+);
+</script>
+
+<script>
+(function () {
+  function showFatalError(err) {
+    var msg = (err && err.message) ? err.message : String(err);
+    msg = msg.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    var el = document.getElementById("root");
+    if (el) {
+      el.innerHTML =
+        '<div style="padding:50px 20px;text-align:center;color:#F2F3F5;font-family:system-ui,sans-serif;">' +
+        '<h2 style="color:#FF4B3E;margin-bottom:10px;">No se pudo cargar HyroxTrack</h2>' +
+        '<p style="color:#9AA1AC;font-size:13px;line-height:1.5;max-width:340px;margin:0 auto 14px;">' + msg + '</p>' +
+        '<p style="color:#5C636E;font-size:12px;">Recarga la página (desliza hacia abajo o usa el botón de recargar de Safari). Si el problema sigue, revisa que tengas conexión a internet para cargar React y Babel.</p>' +
+        '</div>';
+    }
+    if (window.console && console.error) console.error("HyroxTrack — fallo fatal de arranque:", err);
+  }
+
+  try {
+    if (!window.React || !window.ReactDOM) {
+      throw new Error("No se pudieron cargar React/ReactDOM (revisa tu conexión a internet).");
+    }
+    if (!window.Babel) {
+      throw new Error("No se pudo cargar Babel (revisa tu conexión a internet).");
+    }
+    var srcEl = document.getElementById("app-source");
+    if (!srcEl) throw new Error("Falta el bloque de código fuente de la app.");
+    var source = srcEl.textContent;
+
+    // IMPORTANTE: runtime "classic" explícito. El runtime "automatic" genera
+    // imports de módulo (jsx-runtime) que fallan en un <script> normal sin
+    // sistema de módulos — esa fue la causa raíz de la pantalla negra anterior.
+    var result = Babel.transform(source, {
+      presets: [["react", { runtime: "classic" }]],
+      filename: "app.jsx",
+    });
+
+    var execScript = document.createElement("script");
+    execScript.text = result.code;
+    document.body.appendChild(execScript);
+  } catch (err) {
+    showFatalError(err);
+  }
+})();
+</script>
+</body>
+</html>
