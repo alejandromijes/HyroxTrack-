@@ -169,37 +169,36 @@ const DEFAULT_PROFILE = { heightCm:174, hrMax:185, sex:'m', surgery:'manga gást
 
 // Routines
 const ROUTINE_A = {
-  name: 'Fuerza A — Empuje + Pierna',
+  name: 'Fuerza A — Sentadilla + Empuje',
   exercises: [
     {id:'sentadilla',label:'Sentadilla',sets:4,reps:'6-8'},
-    {id:'press_banca',label:'Press Banca',sets:4,reps:'6-8'},
+    {id:'press_banca',label:'Press Banca',sets:4,reps:'5-6'},
+    {id:'pm_rumano',label:'Peso Muerto Rumano',sets:4,reps:'8-10'},
+    {id:'remo_polea',label:'Remo en Polea',sets:3,reps:'9-12'},
     {id:'press_militar',label:'Press Militar',sets:3,reps:'8-10'},
-    {id:'extension_pierna',label:'Extensión de Pierna',sets:3,reps:'10-12'},
-    {id:'triceps_polea',label:'Tríceps Polea',sets:3,reps:'10-12'},
-    {id:'elevaciones_laterales',label:'Elevaciones Laterales',sets:3,reps:'12-15'},
+    {id:'laterales',label:'Elevaciones Laterales',sets:3,reps:'10-12'},
   ]
 };
 const ROUTINE_B = {
-  name: 'Fuerza B — Jalón + Pierna',
+  name: 'Fuerza B — Peso Muerto + Jalón',
   exercises: [
-    {id:'peso_muerto',label:'Peso Muerto Rumano',sets:4,reps:'6-8'},
-    {id:'remo_barra',label:'Remo con Barra',sets:4,reps:'6-8'},
-    {id:'jalon_polea',label:'Jalón Polea',sets:3,reps:'8-10'},
-    {id:'curl_femoral',label:'Curl Femoral',sets:3,reps:'10-12'},
-    {id:'curl_biceps',label:'Curl Bíceps',sets:3,reps:'10-12'},
-    {id:'face_pull',label:'Face Pull',sets:3,reps:'12-15'},
+    {id:'peso_muerto',label:'Peso Muerto',sets:4,reps:'5-6'},
+    {id:'dominadas',label:'Dominadas / Jalón',sets:4,reps:'6-10'},
+    {id:'prensa',label:'Prensa',sets:3,reps:'10'},
+    {id:'press_inclinado',label:'Press Inclinado Mancuernas',sets:3,reps:'12'},
+    {id:'remo_unilateral',label:'Remo Unilateral',sets:3,reps:'10'},
+    {id:'brazos',label:'Brazos (Curl)',sets:2,reps:'10-15'},
+    {id:'rueda_abs',label:'Rueda Abdominal',sets:3,reps:'12'},
   ]
 };
 const ROUTINE_FULL = {
   name: 'Full Body',
   exercises: [
     {id:'sentadilla',label:'Sentadilla',sets:3,reps:'6-8'},
-    {id:'press_banca',label:'Press Banca',sets:3,reps:'6-8'},
-    {id:'remo_barra',label:'Remo con Barra',sets:3,reps:'8-10'},
+    {id:'press_banca',label:'Press Banca',sets:3,reps:'5-6'},
+    {id:'remo_polea',label:'Remo en Polea',sets:3,reps:'9-12'},
     {id:'press_militar',label:'Press Militar',sets:3,reps:'8-10'},
-    {id:'peso_muerto',label:'Peso Muerto Rumano',sets:3,reps:'8-10'},
-    {id:'curl_biceps',label:'Curl Bíceps',sets:2,reps:'10-12'},
-    {id:'triceps_polea',label:'Tríceps Polea',sets:2,reps:'10-12'},
+    {id:'pm_rumano',label:'Peso Muerto Rumano',sets:3,reps:'8-10'},
   ]
 };
 
@@ -373,6 +372,23 @@ async function fileToBase64(file){
   });
 }
 
+async function prepareImage(file){
+  // Resize/convert to JPEG (gallery photos can be HEIC or >5MB, which the API rejects)
+  try{
+    const url = URL.createObjectURL(file);
+    const img = await new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src=url;});
+    const max = 1600;
+    const scale = Math.min(1, max/Math.max(img.naturalWidth,img.naturalHeight));
+    const c = document.createElement('canvas');
+    c.width = Math.round(img.naturalWidth*scale); c.height = Math.round(img.naturalHeight*scale);
+    c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+    URL.revokeObjectURL(url);
+    const data = c.toDataURL('image/jpeg',0.85).split(',')[1];
+    if(data) return {b64:data, mediaType:'image/jpeg'};
+  }catch(e){ console.warn('prepareImage fallback',e); }
+  return {b64: await fileToBase64(file), mediaType: file.type || 'image/jpeg'};
+}
+
 // ─── Error Boundary ────────────────────────────────────────
 class ErrorBoundary extends React.Component {
   constructor(props){super(props);this.state={error:null};}
@@ -514,26 +530,43 @@ function ChecklistCard({day,date,onUpdate,routine}){
 }
 
 // ─── Expandable Routine / Lifts ────────────────────────────
-function ExpandableRoutine({routine,lifts,onUpdateLifts}){
+function getLastLift(days,date,exId){
+  const keys = Object.keys(days||{}).filter(k=>k<date).sort().reverse();
+  for(const k of keys){
+    const sets = days[k] && days[k].lifts && days[k].lifts[exId];
+    if(Array.isArray(sets) && sets.some(x=>x && (x.w>0 || x.r>0))) return {date:k,sets};
+  }
+  return null;
+}
+
+function ExpandableRoutine({routine,lifts,onUpdateLifts,days,date}){
   const [open,setOpen] = useState(true);
   if(!routine) return null;
 
-  function updateSet(exId,setIdx,field,val){
+  function blankSets(ex){ return Array.from({length:ex.sets},()=>({w:0,r:0,rir:2})); }
+
+  function updateSet(ex,setIdx,field,val){
     const cur = {...lifts};
-    if(!cur[exId]) cur[exId] = routine.exercises.find(e=>e.id===exId)
-      ? Array.from({length:routine.exercises.find(e=>e.id===exId).sets},()=>({w:0,r:0,rir:2}))
-      : [];
-    cur[exId] = [...cur[exId]];
-    cur[exId][setIdx] = {...cur[exId][setIdx],[field]:Number(val)||0};
+    cur[ex.id] = [...(cur[ex.id] || blankSets(ex))];
+    cur[ex.id][setIdx] = {...cur[ex.id][setIdx],[field]:Number(val)||0};
     onUpdateLifts(cur);
   }
 
-  function copyPrevSet(exId,setIdx){
-    if(setIdx===0) return;
+  function copyPrevSet(ex,setIdx){
+    if(setIdx===0 || !lifts[ex.id]) return;
     const cur = {...lifts};
-    if(!cur[exId]) return;
-    cur[exId] = [...cur[exId]];
-    cur[exId][setIdx] = {...cur[exId][setIdx-1]};
+    cur[ex.id] = [...cur[ex.id]];
+    cur[ex.id][setIdx] = {...cur[ex.id][setIdx-1]};
+    onUpdateLifts(cur);
+  }
+
+  function useLast(ex,last){
+    const cur = {...lifts};
+    const src = last.sets;
+    cur[ex.id] = Array.from({length:ex.sets},(_,i)=>{
+      const p = src[i] || src[src.length-1] || {};
+      return {w:p.w||0, r:p.r||0, rir:p.rir==null?2:p.rir};
+    });
     onUpdateLifts(cur);
   }
 
@@ -543,11 +576,23 @@ function ExpandableRoutine({routine,lifts,onUpdateLifts}){
       React.createElement('span',{className:'expandable-arrow'+(open?' open':'')},'▶')
     ),
     open && routine.exercises.map(ex=>{
-      const sets = lifts[ex.id] || Array.from({length:ex.sets},()=>({w:0,r:0,rir:2}));
-      return React.createElement('div',{key:ex.id,style:{marginTop:12}},
-        React.createElement('div',{className:'text-sm fw-bold mb-8'},ex.label,' ',
+      const sets = lifts[ex.id] || blankSets(ex);
+      const last = getLastLift(days,date,ex.id);
+      const topReps = parseInt(String(ex.reps).split('-').pop(),10) || 0;
+      const hitTop = last && topReps && last.sets.every(x=>x && x.r>=topReps && x.w>0);
+      const lastTxt = last ? last.sets.map(x=>(x.w?x.w:'–')+'×'+(x.r||0)).join(' · ') : null;
+      return React.createElement('div',{key:ex.id,style:{marginTop:14}},
+        React.createElement('div',{className:'text-sm fw-bold'},ex.label,' ',
           React.createElement('span',{className:'text-muted'},ex.sets+'×'+ex.reps)
         ),
+        last && React.createElement('div',{className:'text-xs text-muted',style:{margin:'4px 0 6px',lineHeight:1.5}},
+          '📌 Última vez ('+fmtDate(last.date)+'): ',
+          React.createElement('span',{className:'text-accent'},lastTxt),
+          ' ',
+          React.createElement('button',{className:'text-xs text-accent',style:{textDecoration:'underline'},onClick:()=>useLast(ex,last)},'Usar esta carga'),
+          hitTop && React.createElement('div',{className:'text-green'},'💡 Llegaste al tope de reps: prueba subir ~2.5 kg')
+        ),
+        !last && React.createElement('div',{className:'text-xs text-muted',style:{margin:'4px 0 6px'}},'Sin registro previo'),
         React.createElement('table',{className:'lift-table'},
           React.createElement('thead',null,
             React.createElement('tr',null,
@@ -559,15 +604,16 @@ function ExpandableRoutine({routine,lifts,onUpdateLifts}){
             )
           ),
           React.createElement('tbody',null,
-            sets.map((s,i)=>
-              React.createElement('tr',{key:i},
+            sets.map((st,i)=>{
+              const pv = last ? (last.sets[i] || last.sets[last.sets.length-1] || {}) : {};
+              return React.createElement('tr',{key:i},
                 React.createElement('td',null,i+1),
-                React.createElement('td',null,React.createElement('input',{type:'number',value:s.w||'',onChange:e=>updateSet(ex.id,i,'w',e.target.value)})),
-                React.createElement('td',null,React.createElement('input',{type:'number',value:s.r||'',onChange:e=>updateSet(ex.id,i,'r',e.target.value)})),
-                React.createElement('td',null,React.createElement('input',{type:'number',value:s.rir===0?'0':s.rir||'',onChange:e=>updateSet(ex.id,i,'rir',e.target.value)})),
-                React.createElement('td',null,i>0&&React.createElement('button',{className:'text-xs text-accent',onClick:()=>copyPrevSet(ex.id,i)},'⬆'))
-              )
-            )
+                React.createElement('td',null,React.createElement('input',{type:'number',inputMode:'decimal',value:st.w||'',placeholder:pv.w?String(pv.w):'',onChange:e=>updateSet(ex,i,'w',e.target.value)})),
+                React.createElement('td',null,React.createElement('input',{type:'number',inputMode:'numeric',value:st.r||'',placeholder:pv.r?String(pv.r):'',onChange:e=>updateSet(ex,i,'r',e.target.value)})),
+                React.createElement('td',null,React.createElement('input',{type:'number',inputMode:'numeric',value:st.rir===0?'0':st.rir||'',onChange:e=>updateSet(ex,i,'rir',e.target.value)})),
+                React.createElement('td',null,i>0&&React.createElement('button',{className:'text-xs text-accent',onClick:()=>copyPrevSet(ex,i)},'⬆'))
+              );
+            })
           )
         )
       );
@@ -626,8 +672,7 @@ function WeightCard({weight,onUpdate,apiKey}){
     if(!file||!apiKey) return;
     setLoading(true);
     try{
-      const b64 = await fileToBase64(file);
-      const mediaType = file.type || 'image/jpeg';
+      const {b64,mediaType} = await prepareImage(file);
       const resp = await callClaude(apiKey,[{
         role:'user',
         content:[
@@ -665,7 +710,7 @@ function WeightCard({weight,onUpdate,apiKey}){
       )
     ),
     React.createElement('div',{className:'mt-12'},
-      React.createElement('input',{ref:fileRef,type:'file',accept:'image/*',capture:'environment',style:{display:'none'},onChange:handlePhoto}),
+      React.createElement('input',{ref:fileRef,type:'file',accept:'image/*',style:{display:'none'},onChange:handlePhoto}),
       React.createElement('button',{className:'btn btn-secondary w-full',onClick:()=>fileRef.current?.click(),disabled:loading||!apiKey},
         loading?'Analizando...':'📷 Foto de báscula'
       )
@@ -735,8 +780,7 @@ function MealsCard({meals,onUpdate,apiKey}){
     if(!file||!apiKey) return;
     setAiLoading(true);
     try{
-      const b64 = await fileToBase64(file);
-      const mediaType = file.type || 'image/jpeg';
+      const {b64,mediaType} = await prepareImage(file);
       const resp = await callClaude(apiKey,[{
         role:'user',
         content:[
@@ -798,7 +842,7 @@ function MealsCard({meals,onUpdate,apiKey}){
       ),
 
       // AI photo
-      React.createElement('input',{ref:fileRef,type:'file',accept:'image/*',capture:'environment',style:{display:'none'},onChange:analyzePhoto}),
+      React.createElement('input',{ref:fileRef,type:'file',accept:'image/*',style:{display:'none'},onChange:analyzePhoto}),
       React.createElement('button',{className:'btn btn-secondary w-full mt-8',onClick:()=>fileRef.current?.click(),disabled:aiLoading||!apiKey},
         aiLoading?'Analizando foto...':'📷 Foto de comida'
       ),
@@ -891,8 +935,8 @@ function TabDia({data,setData,date,setDate}){
     React.createElement(ErrorBoundary,{name:'Checklist'},
       React.createElement(ChecklistCard,{day,date,onUpdate:updateDay,routine})
     ),
-    type==='fuerza' && routine && day.fuerzaDone && React.createElement(ErrorBoundary,{name:'Rutina'},
-      React.createElement(ExpandableRoutine,{routine,lifts:day.lifts||{},onUpdateLifts:updateLifts})
+    type==='fuerza' && routine && React.createElement(ErrorBoundary,{name:'Rutina'},
+      React.createElement(ExpandableRoutine,{routine,lifts:day.lifts||{},onUpdateLifts:updateLifts,days:data.days||{},date})
     ),
     React.createElement(ErrorBoundary,{name:'Macros'},
       React.createElement(MacroSummaryCard,{meals:day.meals||[],block,date})
@@ -941,8 +985,7 @@ function PerfForm({data,setData}){
     if(!file||!data.apiKey) return;
     setWatchLoading(true);
     try{
-      const b64 = await fileToBase64(file);
-      const mediaType = file.type || 'image/jpeg';
+      const {b64,mediaType} = await prepareImage(file);
       const resp = await callClaude(data.apiKey,[{
         role:'user',
         content:[
@@ -984,7 +1027,7 @@ function PerfForm({data,setData}){
         React.createElement('input',{type:'number',value:form.totalSec||'',onChange:e=>setForm({...form,totalSec:e.target.value})})
       )
     ),
-    React.createElement('input',{ref:fileRef,type:'file',accept:'image/*',capture:'environment',style:{display:'none'},onChange:parseWatch}),
+    React.createElement('input',{ref:fileRef,type:'file',accept:'image/*',style:{display:'none'},onChange:parseWatch}),
     React.createElement('button',{className:'btn btn-secondary w-full mb-8',onClick:()=>fileRef.current?.click(),disabled:watchLoading||!data.apiKey},
       watchLoading?'Analizando...':'⌚ Foto Apple Watch'
     ),
