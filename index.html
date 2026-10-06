@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>HyroxTrack</title>
 <style>
 :root{
@@ -20,7 +20,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent);
 textarea{resize:vertical;min-height:60px;}
 
 .app{display:flex;flex-direction:column;min-height:100vh;padding-bottom:calc(60px + var(--safe-bottom));}
-.topbar{position:sticky;top:0;z-index:100;background:var(--surface);border-bottom:1px solid var(--border);padding:8px 16px;display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.topbar{position:static;padding-top:calc(8px + env(safe-area-inset-top,0px));background:var(--surface);border-bottom:1px solid var(--border);padding-left:16px;padding-right:16px;padding-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:8px;}
 .topbar h1{font-size:16px;font-weight:700;white-space:nowrap;}
 .topbar-right{display:flex;gap:6px;align-items:center;}
 .topbar-btn{padding:6px 10px;border-radius:8px;font-size:12px;font-weight:600;background:var(--surface2);border:1px solid var(--border);}
@@ -37,7 +37,7 @@ textarea{resize:vertical;min-height:60px;}
 .card-title{font-size:14px;font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:8px;}
 .card-subtitle{font-size:12px;color:var(--text2);margin-bottom:8px;}
 
-.day-selector{display:flex;align-items:center;justify-content:center;gap:12px;padding:8px 0 12px;position:sticky;top:49px;z-index:50;background:var(--bg);}
+.day-selector{display:flex;align-items:center;justify-content:center;gap:12px;padding:8px 0 12px;position:static;background:var(--bg);}
 .day-selector button{width:36px;height:36px;border-radius:50%;background:var(--surface2);border:1px solid var(--border);font-size:16px;display:flex;align-items:center;justify-content:center;}
 .day-selector button:active{background:var(--accent2);}
 .day-label{font-size:14px;font-weight:600;min-width:140px;text-align:center;}
@@ -112,7 +112,7 @@ textarea{resize:vertical;min-height:60px;}
 
 .note-area{margin-top:8px;}
 
-.toast{position:fixed;top:60px;left:50%;transform:translateX(-50%);background:var(--green);color:#fff;padding:8px 20px;border-radius:8px;font-size:13px;font-weight:600;z-index:300;animation:fadeInOut 2s ease;}
+.toast{position:fixed;top:calc(12px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);background:var(--green);color:#fff;padding:8px 20px;border-radius:8px;font-size:13px;font-weight:600;z-index:300;animation:fadeInOut 2s ease;}
 @keyframes fadeInOut{0%{opacity:0;transform:translateX(-50%) translateY(-10px);}10%{opacity:1;transform:translateX(-50%) translateY(0);}80%{opacity:1;}100%{opacity:0;}}
 
 .loading-dots::after{content:'...';animation:dots 1.5s steps(4) infinite;}
@@ -246,27 +246,81 @@ function safeGet(key){
   }catch(e){ return null; }
 }
 
+function normalizeData(d){
+  if(!d || typeof d!=='object' || Array.isArray(d)) return defaultData();
+  const def = defaultPlan();
+  d.version = VERSION;
+  if(typeof d.apiKey!=='string') d.apiKey = '';
+  if(!d.profile || typeof d.profile!=='object') d.profile = {...DEFAULT_PROFILE};
+  if(!d.plan || typeof d.plan!=='object') d.plan = def;
+  if(!d.plan.startDate) d.plan.startDate = def.startDate;
+  if(!Array.isArray(d.plan.blocks) || !d.plan.blocks.length) d.plan.blocks = def.blocks;
+
+  // Migración de dieta: la nueva dieta (2,100 base / 2,500 flex) reemplaza los macros de los bloques.
+  // Los bloques anteriores se conservan en plan.legacyBlocks para no perder nada.
+  if((d.plan.dietVersion||0) < 2){
+    if(!Array.isArray(d.plan.legacyBlocks)) d.plan.legacyBlocks = d.plan.blocks.map(b=>({...b}));
+    d.plan.blocks = d.plan.blocks.map(b=>{
+      const df = def.blocks.find(x=>x.id===b.id);
+      return df ? {...b,kcal:df.kcal,kcalFlex:df.kcalFlex,protein:df.protein,carbs:df.carbs,fat:df.fat,note:df.note}
+                : {...b,kcalFlex:b.kcalFlex||b.kcal};
+    });
+    d.plan.dietVersion = 2;
+  }
+  d.plan.blocks = d.plan.blocks.map(b=>({...b,kcalFlex:b.kcalFlex||b.kcal}));
+  if(!Array.isArray(d.plan.flexDays)) d.plan.flexDays = [5,6];
+
+  // Rendimiento: estructura {hyrox:[],secondary:[]}; migra el formato "perf" de versiones intermedias
+  if(!d.performance || typeof d.performance!=='object') d.performance = {hyrox:[],secondary:[]};
+  if(!Array.isArray(d.performance.hyrox)) d.performance.hyrox = [];
+  if(!Array.isArray(d.performance.secondary)) d.performance.secondary = [];
+  if(Array.isArray(d.perf)){
+    d.perf.forEach(p=>{
+      if(!p) return;
+      const e = {id:p.id||('p'+uid()),type:p.type||'benchmark',durationMin:Math.round(((p.totalSec||0)/60)*100)/100,hrAvg:null,hrMax:null,rpe:null,notes:p.note||'',segments:[],dateISO:p.date||todayStr()};
+      (e.type==='hyrox_sim'||e.type==='hyrox_race' ? d.performance.hyrox : d.performance.secondary).push(e);
+    });
+  }
+  delete d.perf;
+
+  // Comidas frecuentes
+  if(!Array.isArray(d.frequentFoods) || !d.frequentFoods.length) d.frequentFoods = DEFAULT_FREQUENT.map(f=>({...f}));
+
+  // Revisiones: quita duplicados exactos (bug antiguo)
+  if(!Array.isArray(d.reviews)) d.reviews = [];
+  const seen = new Set();
+  d.reviews = d.reviews.filter(r=>{
+    if(!r || typeof r!=='object') return false;
+    const key = JSON.stringify({...r,id:undefined});
+    if(seen.has(key)) return false;
+    seen.add(key); return true;
+  });
+
+  // Días
+  if(!d.days || typeof d.days!=='object') d.days = {};
+  Object.keys(d.days).forEach(k=>{
+    let day = d.days[k];
+    if(!day || typeof day!=='object'){ d.days[k] = emptyDay(); return; }
+    if(!Array.isArray(day.meals)) day.meals = [];
+    if(!day.weight || typeof day.weight!=='object') day.weight = {};
+    if(!day.lifts || typeof day.lifts!=='object') day.lifts = {};
+    if(!day.supps || typeof day.supps!=='object') day.supps = {};
+    if(day.hyroxSimDone===undefined) day.hyroxSimDone = false;
+    if(day.hyroxSimRpe===undefined) day.hyroxSimRpe = null;
+    if(day.hyroxSimMin===undefined) day.hyroxSimMin = null;
+    // Báscula: una versión anterior guardaba la grasa visceral como "visceralFat"
+    if(day.weight.visceralFat!=null){
+      if(day.weight.visceral==null) day.weight.visceral = day.weight.visceralFat;
+      delete day.weight.visceralFat;
+    }
+  });
+  return d;
+}
+
 function loadData(){
   const d = safeGet(STORAGE_KEY);
   if(!d) return defaultData();
-  // Sanitize
-  if(!d.version) d.version = VERSION;
-  if(!d.profile || typeof d.profile !== 'object') d.profile = {...DEFAULT_PROFILE};
-  if(!d.plan || typeof d.plan !== 'object') d.plan = defaultPlan();
-  if(!d.days || typeof d.days !== 'object') d.days = {};
-  if(!Array.isArray(d.plan.blocks)) d.plan.blocks = defaultPlan().blocks;
-  if(!Array.isArray(d.reviews)) d.reviews = [];
-  if(!Array.isArray(d.perf)) d.perf = [];
-  // Sanitize each day
-  Object.keys(d.days).forEach(k => {
-    const day = d.days[k];
-    if(!day || typeof day !== 'object'){ d.days[k] = emptyDay(); return; }
-    if(!Array.isArray(day.meals)) day.meals = [];
-    if(!day.weight || typeof day.weight !== 'object') day.weight = {};
-    if(!day.lifts || typeof day.lifts !== 'object') day.lifts = {};
-    if(!day.supps || typeof day.supps !== 'object') day.supps = {};
-  });
-  return d;
+  return normalizeData(d);
 }
 
 function saveData(d){
@@ -276,9 +330,11 @@ function saveData(d){
 function defaultPlan(){
   return {
     startDate:'2026-09-22',
+    dietVersion:2,
+    flexDays:[5,6],
     maintenanceKcal:2550,
     blocks:[
-      {id:'b1',name:'Definición 1',goal:'cut',days:28,kcal:2100,kcalFlex:2500,protein:180,carbs:200,fat:67,note:'Base 2,100 kcal L-J. Días flex (V-S): 2,500 max. Promedio semanal ~2,180.'},
+      {id:'b1',name:'Definición 1',goal:'cut',days:28,kcal:2100,kcalFlex:2500,protein:180,carbs:200,fat:67,note:'Base 2,100 kcal. Días flex (Vie-Sáb): 2,500 max. Promedio semanal ~2,180.'},
       {id:'b2',name:'Definición 2',goal:'cut',days:28,kcal:2000,kcalFlex:2400,protein:180,carbs:185,fat:65,note:'Ajuste con datos reales. Ritmo meta: 0.30–0.45 kg/semana.'},
       {id:'b3',name:'Definición 3',goal:'cut',days:28,kcal:1950,kcalFlex:2350,protein:175,carbs:178,fat:63,note:'Vigila fuerza y sueño antes de recortar más.'},
       {id:'b4',name:'Descanso metabólico',goal:'maintain',days:14,kcal:2550,kcalFlex:2550,protein:170,carbs:300,fat:78,note:'Navidad y Año Nuevo a mantenimiento. Revierte adaptación metabólica.'},
@@ -304,6 +360,18 @@ function emptyDay(){
   };
 }
 
+const DEFAULT_FREQUENT = [
+  {id:'ff-yogurt',name:'Alpura Greek Yogurt',kcal:90,protein:15,carbs:6,fat:0},
+  {id:'ff-whey',name:'Gold Standard Whey',kcal:120,protein:24,carbs:3,fat:1},
+  {id:'ff-premier',name:'Premier Protein Shake',kcal:160,protein:30,carbs:5,fat:3},
+  {id:'ff-kbar',name:'Kirkland Protein Bar',kcal:190,protein:21,carbs:22,fat:7},
+  {id:'ff-lala',name:'Lala 100 leche',kcal:90,protein:8,carbs:12,fat:0},
+  {id:'ff-huevos',name:'Huevos revueltos (3)',kcal:210,protein:18,carbs:1,fat:15},
+  {id:'ff-pollo',name:'Pechuga pollo 150g',kcal:165,protein:31,carbs:0,fat:3.6},
+  {id:'ff-arroz',name:'Arroz blanco 1 taza',kcal:206,protein:4,carbs:45,fat:0.4},
+  {id:'ff-galletas',name:'Galletas Emperador',kcal:175,protein:2,carbs:25,fat:8},
+];
+
 function defaultData(){
   return {
     version:VERSION,
@@ -311,8 +379,9 @@ function defaultData(){
     profile:{...DEFAULT_PROFILE},
     plan:defaultPlan(),
     days:{},
-    reviews:[],
-    perf:[]
+    performance:{hyrox:[],secondary:[]},
+    frequentFoods:DEFAULT_FREQUENT.map(f=>({...f})),
+    reviews:[]
   };
 }
 
@@ -332,9 +401,9 @@ function getCurrentBlock(plan, dateStr){
   return {block:last, blockIdx:plan.blocks.length-1, dayInBlock:last.days};
 }
 
+let FLEX_DAYS = [5,6]; // ISO: 1=Lun..7=Dom. Se sincroniza desde plan.flexDays en App.
 function isFlexDay(dateStr){
-  const wd = isoWeekday(dateStr);
-  return wd >= 5; // Fri, Sat, Sun = flex days
+  return FLEX_DAYS.includes(isoWeekday(dateStr));
 }
 
 function getTargetKcal(block, dateStr){
@@ -680,84 +749,168 @@ function MacroSummaryCard({meals,block,date}){
 }
 
 // ─── Weight Card ───────────────────────────────────────────
+const W_FIELDS = {
+  kg:{label:'Peso',unit:'kg',min:30,max:250,dec:2},
+  bodyFatPct:{label:'Grasa',unit:'%',min:3,max:60,dec:1},
+  musclePct:{label:'Músculo',unit:'%',min:15,max:80,dec:1},
+  visceral:{label:'G. visceral',unit:'',min:1,max:30,dec:0},
+  waterPct:{label:'Agua',unit:'%',min:30,max:80,dec:1}
+};
+const W_ALIASES = {
+  kg:['kg','peso','weight','weightkg','pesokg'],
+  bodyFatPct:['bodyfatpct','bodyfat','grasa','grasacorporal','grasacorporalpct','fatpct','fat'],
+  musclePct:['musclepct','skeletalmusclepct','skeletalmuscle','musculo','musculoesqueletico','muscle'],
+  visceral:['visceral','visceralfat','grasavisceral','visceralfatlevel'],
+  waterPct:['waterpct','water','bodywater','bodywaterpct','agua','aguacorporal']
+};
+
+function toNum(v){
+  if(v==null || v==='') return null;
+  if(typeof v==='number') return isFinite(v)?v:null;
+  const m = String(v).replace(',','.').match(/-?\d+(\.\d+)?/);
+  return m ? Number(m[0]) : null;
+}
+
+function extractJSON(text){
+  if(!text) return null;
+  const t = String(text).replace(/```json|```/gi,'');
+  const start = t.search(/[\[{]/);
+  if(start<0) return null;
+  const open = t[start], close = open==='{'?'}':']';
+  let depth=0, inStr=false, esc=false;
+  for(let i=start;i<t.length;i++){
+    const c = t[i];
+    if(inStr){ if(esc) esc=false; else if(c==='\\') esc=true; else if(c==='"') inStr=false; continue; }
+    if(c==='"'){ inStr=true; continue; }
+    if(c===open) depth++;
+    else if(c===close){
+      depth--;
+      if(depth===0){ try{ return JSON.parse(t.slice(start,i+1)); }catch(e){ return null; } }
+    }
+  }
+  return null;
+}
+
+function normalizeScale(json){
+  const out = {}, bad = [];
+  const lower = {};
+  Object.keys(json||{}).forEach(k=>{ lower[String(k).toLowerCase().replace(/[^a-z0-9]/g,'')] = json[k]; });
+  Object.keys(W_ALIASES).forEach(k=>{
+    let v = null;
+    for(const a of W_ALIASES[k]){
+      if(lower[a]!=null){ v = toNum(lower[a]); if(v!=null) break; }
+    }
+    if(v==null) return;
+    const f = W_FIELDS[k];
+    if(v<f.min || v>f.max){ bad.push(k); return; }
+    out[k] = Number(v.toFixed(f.dec));
+  });
+  return {out,bad};
+}
+
 function WeightCard({weight,onUpdate,apiKey}){
   const [loading,setLoading] = useState(false);
+  const [notice,setNotice] = useState('');
   const fileRef = useRef();
 
   async function handlePhoto(e){
-    const file = e.target.files?.[0];
-    if(!file||!apiKey) return;
-    setLoading(true);
-    try{
-      const {b64,mediaType} = await prepareImage(file);
-      const resp = await callClaude(apiKey,[{
-        role:'user',
-        content:[
-          {type:'image',source:{type:'base64',media_type:mediaType,data:b64}},
-          {type:'text',text:'Esta es una foto de una báscula RENPHO. Extrae TODOS los valores visibles. Responde SOLO con JSON así: {"kg":number,"bodyFatPct":number,"musclePct":number,"visceralFat":number,"waterPct":number}. Si no ves algún valor, ponlo como null.'}
-        ]
-      }]);
-      const json = JSON.parse(resp.match(/\{[\s\S]*\}/)?.[0]||'{}');
-      if(json.kg) onUpdate({...weight,...json});
-    }catch(err){
-      alert('Error leyendo báscula: '+err.message);
+    const files = Array.from(e.target.files||[]);
+    if(!files.length||!apiKey) return;
+    setLoading(true); setNotice('');
+    const acc = {}; const badAll = []; const errs = [];
+    for(const file of files){
+      try{
+        const {b64,mediaType} = await prepareImage(file);
+        const resp = await callClaude(apiKey,[{
+          role:'user',
+          content:[
+            {type:'image',source:{type:'base64',media_type:mediaType,data:b64}},
+            {type:'text',text:'Esta es una captura de la app o báscula RENPHO. Extrae SOLO los valores que veas escritos con claridad. Reglas: "kg" = peso corporal en kilogramos (si está en lb, conviértelo a kg); "bodyFatPct" = Grasa corporal / Body Fat en %; "musclePct" = Músculo esquelético / Skeletal Muscle en % (NO la masa muscular en kg); "visceral" = Grasa visceral / Visceral Fat (número entero sin unidad, normalmente entre 1 y 30); "waterPct" = Agua corporal / Body Water en %. No calcules ni adivines: si un valor no aparece en la imagen usa null. Responde SOLO con JSON: {"kg":number|null,"bodyFatPct":number|null,"musclePct":number|null,"visceral":number|null,"waterPct":number|null}'}
+          ]
+        }],600);
+        const json = extractJSON(resp);
+        if(!json || typeof json!=='object') throw new Error('respuesta ilegible de la IA');
+        const {out,bad} = normalizeScale(json);
+        Object.keys(out).forEach(k=>{ if(acc[k]===undefined) acc[k]=out[k]; });
+        bad.forEach(k=>badAll.push(k));
+      }catch(err){ errs.push(err.message); }
     }
+    const read = Object.keys(acc);
+    if(read.length){
+      onUpdate({...weight,...acc,time:weight.time||new Date().toISOString()});
+    }
+    const missing = Object.keys(W_FIELDS).filter(k=>acc[k]===undefined);
+    let msg = read.length
+      ? '✓ Leí: '+read.map(k=>W_FIELDS[k].label+' '+acc[k]).join(' · ')+'.'
+      : 'No pude leer ningún valor.';
+    if(missing.length && read.length) msg += ' No aparecen: '+missing.map(k=>W_FIELDS[k].label).join(', ')+' (captúralos a mano o sube otra captura).';
+    if(badAll.length) msg += ' Descarté por fuera de rango: '+[...new Set(badAll)].map(k=>W_FIELDS[k].label).join(', ')+'.';
+    if(errs.length) msg += ' Error: '+errs[0];
+    setNotice(msg);
     setLoading(false);
     if(fileRef.current) fileRef.current.value='';
   }
 
+  const field = (k,step)=>React.createElement('div',{key:k},
+    React.createElement('div',{className:'text-xs text-muted'},W_FIELDS[k].label+(W_FIELDS[k].unit?' ('+W_FIELDS[k].unit+')':'')),
+    React.createElement('input',{type:'number',inputMode:'decimal',step,value:weight[k]==null?'':weight[k],
+      onChange:e=>onUpdate({...weight,[k]:e.target.value===''?null:Number(e.target.value)})})
+  );
+
   return React.createElement('div',{className:'card'},
     React.createElement('div',{className:'card-title'},'⚖️ Peso corporal'),
     React.createElement('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}},
-      React.createElement('div',null,
-        React.createElement('div',{className:'text-xs text-muted'},'Peso (kg)'),
-        React.createElement('input',{type:'number',step:'0.05',value:weight.kg||'',onChange:e=>onUpdate({...weight,kg:Number(e.target.value)||null})})
-      ),
-      React.createElement('div',null,
-        React.createElement('div',{className:'text-xs text-muted'},'Grasa (%)'),
-        React.createElement('input',{type:'number',step:'0.1',value:weight.bodyFatPct||'',onChange:e=>onUpdate({...weight,bodyFatPct:Number(e.target.value)||null})})
-      ),
-      React.createElement('div',null,
-        React.createElement('div',{className:'text-xs text-muted'},'Músculo (%)'),
-        React.createElement('input',{type:'number',step:'0.1',value:weight.musclePct||'',onChange:e=>onUpdate({...weight,musclePct:Number(e.target.value)||null})})
-      ),
-      React.createElement('div',null,
-        React.createElement('div',{className:'text-xs text-muted'},'Grasa visceral'),
-        React.createElement('input',{type:'number',value:weight.visceralFat||'',onChange:e=>onUpdate({...weight,visceralFat:Number(e.target.value)||null})})
-      )
+      field('kg','0.05'),
+      field('bodyFatPct','0.1'),
+      field('musclePct','0.1'),
+      field('visceral','1'),
+      field('waterPct','0.1')
     ),
     React.createElement('div',{className:'mt-12'},
-      React.createElement('input',{ref:fileRef,type:'file',accept:'image/*',style:{display:'none'},onChange:handlePhoto}),
+      React.createElement('input',{ref:fileRef,type:'file',accept:'image/*',multiple:true,style:{display:'none'},onChange:handlePhoto}),
       React.createElement('button',{className:'btn btn-secondary w-full',onClick:()=>fileRef.current?.click(),disabled:loading||!apiKey},
-        loading?'Analizando...':'📷 Foto de báscula'
-      )
+        loading?'Analizando...':'📷 Foto de báscula (1 o varias capturas)'
+      ),
+      notice && React.createElement('div',{className:'text-xs text-muted',style:{marginTop:8,lineHeight:1.5}},notice)
     )
   );
 }
 
 // ─── Meals Card ────────────────────────────────────────────
-function MealsCard({meals,onUpdate,apiKey}){
+function MealsCard({meals,onUpdate,apiKey,frequent,onUpdateFrequent}){
   const [showAdd,setShowAdd] = useState(false);
   const [editMeal,setEditMeal] = useState(null);
   const [aiText,setAiText] = useState('');
   const [aiLoading,setAiLoading] = useState(false);
   const fileRef = useRef();
 
-  const FREQUENT = [
-    {name:'Alpura Greek Yogurt',kcal:90,protein:15,carbs:6,fat:0},
-    {name:'Gold Standard Whey',kcal:120,protein:24,carbs:3,fat:1},
-    {name:'Premier Protein Shake',kcal:160,protein:30,carbs:5,fat:3},
-    {name:'Kirkland Protein Bar',kcal:190,protein:21,carbs:22,fat:7},
-    {name:'Lala 100 leche',kcal:90,protein:8,carbs:12,fat:0},
-    {name:'Huevos revueltos (3)',kcal:210,protein:18,carbs:1,fat:15},
-    {name:'Pechuga pollo 150g',kcal:165,protein:31,carbs:0,fat:3.6},
-    {name:'Arroz blanco 1 taza',kcal:206,protein:4,carbs:45,fat:0.4},
-    {name:'Galletas Emperador',kcal:175,protein:2,carbs:25,fat:8},
-  ];
+  const [filter,setFilter] = useState('');
+  const FREQUENT = (frequent&&frequent.length) ? frequent : DEFAULT_FREQUENT;
+  const shownFreq = FREQUENT.filter(f=>!filter.trim() || String(f.name||'').toLowerCase().includes(filter.trim().toLowerCase()));
 
   function addFrequent(f){
-    const newMeal = {id:uid(),...f,source:'frecuente',time:new Date().toTimeString().slice(0,5)};
+    const newMeal = {...f,id:uid(),source:'frecuente',time:new Date().toTimeString().slice(0,5)};
     onUpdate([...meals,newMeal]);
+  }
+
+  function saveAsFrequent(m){
+    if(!onUpdateFrequent) return;
+    if(FREQUENT.some(f=>String(f.name).toLowerCase()===String(m.name).toLowerCase())){ alert('Ya está en frecuentes'); return; }
+    onUpdateFrequent([{id:'ff'+uid(),name:m.name,kcal:m.kcal||0,protein:m.protein||0,carbs:m.carbs||0,fat:m.fat||0},...FREQUENT]);
+  }
+
+  function parseMeals(resp,source){
+    let arr = extractJSON(resp);
+    if(arr && !Array.isArray(arr)) arr = Array.isArray(arr.meals)?arr.meals : Array.isArray(arr.items)?arr.items : (arr.name?[arr]:null);
+    if(!Array.isArray(arr)) throw new Error('No pude interpretar la respuesta de la IA, intenta de nuevo');
+    const out = arr.filter(m=>m&&m.name).map(m=>{
+      const p = Math.round((toNum(m.protein)||0)*10)/10, c = Math.round((toNum(m.carbs)||0)*10)/10, f = Math.round((toNum(m.fat)||0)*10)/10;
+      let k = Math.round(toNum(m.kcal)||0);
+      if(!k) k = Math.round(4*p+4*c+9*f);
+      return {id:uid(),name:String(m.name),kcal:k,protein:p,carbs:c,fat:f,source,time:new Date().toTimeString().slice(0,5)};
+    });
+    if(!out.length) throw new Error('La IA no devolvió alimentos');
+    return out;
   }
 
   function removeMeal(id){
@@ -782,8 +935,7 @@ function MealsCard({meals,onUpdate,apiKey}){
         role:'user',
         content:'Soy paciente post manga gástrica. Analiza esta comida y dame los macros. Responde SOLO JSON array: [{"name":"...","kcal":number,"protein":number,"carbs":number,"fat":number}]. Comida: '+aiText
       }]);
-      const arr = JSON.parse(resp.match(/\[[\s\S]*\]/)?.[0]||'[]');
-      const newMeals = arr.map(m=>({id:uid(),...m,source:'ai-texto',time:new Date().toTimeString().slice(0,5)}));
+      const newMeals = parseMeals(resp,'ai-texto');
       onUpdate([...meals,...newMeals]);
       setAiText('');
     }catch(err){
@@ -805,8 +957,7 @@ function MealsCard({meals,onUpdate,apiKey}){
           {type:'text',text:'Soy paciente post manga gástrica. Identifica los alimentos en esta foto y estima macros. Responde SOLO JSON array: [{"name":"...","kcal":number,"protein":number,"carbs":number,"fat":number}]'}
         ]
       }]);
-      const arr = JSON.parse(resp.match(/\[[\s\S]*\]/)?.[0]||'[]');
-      const newMeals = arr.map(m=>({id:uid(),...m,source:'ai-foto',time:new Date().toTimeString().slice(0,5)}));
+      const newMeals = parseMeals(resp,'ai-foto');
       onUpdate([...meals,...newMeals]);
     }catch(err){
       alert('Error AI foto: '+err.message);
@@ -827,10 +978,11 @@ function MealsCard({meals,onUpdate,apiKey}){
         React.createElement('div',{style:{flex:1},onClick:()=>{setEditMeal(m);setShowAdd(true);}},
           React.createElement('div',{className:'meal-name'},m.name),
           React.createElement('div',{className:'meal-macros'},'P:',m.protein||0,'g C:',m.carbs||0,'g F:',m.fat||0,'g'),
-          m.source && React.createElement('div',{className:'text-xs text-muted'},m.source,' · ',m.time||'')
+          m.source && React.createElement('div',{className:'text-xs text-muted'},m.source,' · ',fmtTime(m.time))
         ),
         React.createElement('div',{style:{display:'flex',alignItems:'center',gap:8}},
           React.createElement('span',{className:'meal-kcal'},m.kcal||0),
+          onUpdateFrequent && React.createElement('button',{className:'text-sm',title:'Guardar en frecuentes',onClick:(e)=>{e.stopPropagation();saveAsFrequent(m);}},'⭐'),
           React.createElement('button',{className:'text-red text-sm',onClick:(e)=>{e.stopPropagation();removeMeal(m.id);}},'✕')
         )
       )
@@ -844,9 +996,10 @@ function MealsCard({meals,onUpdate,apiKey}){
     // Add panel
     showAdd && React.createElement('div',{style:{marginTop:12,paddingTop:12,borderTop:'1px solid var(--border)'}},
       // Frequent foods
-      React.createElement('div',{className:'text-xs text-muted mb-8'},'Frecuentes'),
-      React.createElement('div',{style:{display:'flex',flexWrap:'wrap',marginBottom:12}},
-        FREQUENT.map((f,i)=>
+      React.createElement('div',{className:'text-xs text-muted mb-8'},'Frecuentes (',FREQUENT.length,')'),
+      React.createElement('input',{className:'mb-8',value:filter,onChange:e=>setFilter(e.target.value),placeholder:'Buscar en frecuentes...'}),
+      React.createElement('div',{style:{display:'flex',flexWrap:'wrap',marginBottom:12,maxHeight:180,overflowY:'auto'}},
+        shownFreq.map((f,i)=>
           React.createElement('button',{key:i,className:'chip',onClick:()=>addFrequent(f)},f.name,' ',React.createElement('span',{className:'text-muted'},f.kcal))
         )
       ),
@@ -869,6 +1022,12 @@ function MealsCard({meals,onUpdate,apiKey}){
                : React.createElement('button',{className:'btn btn-secondary w-full mt-8',onClick:()=>setEditMeal({name:'',kcal:0,protein:0,carbs:0,fat:0,source:'manual'})},'✏️ Agregar manual')
     )
   );
+}
+
+function fmtTime(t){
+  if(!t) return '';
+  if(String(t).includes('T')){ const d=new Date(t); return isNaN(d)?'':d.toTimeString().slice(0,5); }
+  return t;
 }
 
 function MealForm({meal,onSave,onCancel}){
@@ -959,7 +1118,7 @@ function TabDia({data,setData,date,setDate}){
       React.createElement(MacroSummaryCard,{meals:day.meals||[],block,date})
     ),
     React.createElement(ErrorBoundary,{name:'Comidas'},
-      React.createElement(MealsCard,{meals:day.meals||[],onUpdate:updateMeals,apiKey:data.apiKey})
+      React.createElement(MealsCard,{meals:day.meals||[],onUpdate:updateMeals,apiKey:data.apiKey,frequent:data.frequentFoods,onUpdateFrequent:ff=>{const nd={...data,frequentFoods:ff};setData(nd);saveData(nd);}})
     ),
     React.createElement(ErrorBoundary,{name:'Peso'},
       React.createElement(WeightCard,{weight:day.weight||{},onUpdate:w=>updateDay({weight:w}),apiKey:data.apiKey})
@@ -974,114 +1133,169 @@ function TabDia({data,setData,date,setDate}){
 }
 
 // ─── TAB: Rendimiento ──────────────────────────────────────
+// Estructura (compatible con tu backup): data.performance = {hyrox:[], secondary:[]}
+// entrada: {id,type,durationMin,hrAvg,hrMax,rpe,notes,segments,dateISO}
+const PERF_TYPES = {
+  hyrox_sim:{icon:'🔥',label:'Simulación Hyrox'},
+  hyrox_race:{icon:'🏁',label:'Carrera Hyrox'},
+  funcional:{icon:'🏃',label:'Clase Funcional'},
+  fuerza:{icon:'🏋️',label:'Fuerza'},
+  running:{icon:'👟',label:'Correr'},
+  benchmark:{icon:'📊',label:'Benchmark'}
+};
+
+function perfEntries(data){
+  const p = (data && data.performance) || {};
+  const a = (Array.isArray(p.hyrox)?p.hyrox:[]);
+  const b = (Array.isArray(p.secondary)?p.secondary:[]);
+  return [...a,...b].sort((x,y)=>String(y.dateISO||'').localeCompare(String(x.dateISO||'')));
+}
+
+function fmtDur(min){
+  if(min==null || isNaN(min)) return '–';
+  const t = Math.round(min*60);
+  const m = Math.floor(t/60), s = t%60;
+  return m+' min'+(s?' '+s+' s':'');
+}
+
 function PerfForm({data,setData}){
-  const [form,setForm] = useState({date:todayStr(),type:'hyrox_sim',totalMin:null,totalSec:null,stations:{},note:''});
+  const blank = ()=>({dateISO:todayStr(),type:'hyrox_sim',min:'',sec:'',hrAvg:'',hrMax:'',rpe:null,notes:'',distanceKm:'',kcal:''});
+  const [form,setForm] = useState(blank);
   const [watchLoading,setWatchLoading] = useState(false);
+  const [notice,setNotice] = useState('');
   const fileRef = useRef();
 
-  const STATIONS = ['SkiErg','Sled Push','Sled Pull','Burpee Broad Jump','Rowing','Farmers Carry','Sandbag Lunges','Wall Balls'];
+  const durationMin = (Number(form.min)||0) + (Number(form.sec)||0)/60;
 
   function save(){
     const entry = {
-      id:uid(),
-      date:form.date,
+      id:'p'+uid(),
       type:form.type,
-      totalSec:(Number(form.totalMin)||0)*60+(Number(form.totalSec)||0),
-      stations:form.stations,
-      note:form.note
+      durationMin: Math.round(durationMin*100)/100,
+      hrAvg: form.hrAvg===''?null:Number(form.hrAvg),
+      hrMax: form.hrMax===''?null:Number(form.hrMax),
+      rpe: form.rpe,
+      notes: form.notes||'',
+      segments: [],
+      dateISO: form.dateISO
     };
-    const newPerf = [...(data.perf||[]),entry];
-    const newData = {...data,perf:newPerf};
+    if(form.distanceKm!=='') entry.distanceKm = Number(form.distanceKm);
+    if(form.kcal!=='') entry.kcal = Number(form.kcal);
+    const perf = {hyrox:[...(data.performance?.hyrox||[])],secondary:[...(data.performance?.secondary||[])]};
+    (form.type==='hyrox_sim'||form.type==='hyrox_race' ? perf.hyrox : perf.secondary).push(entry);
+    const newData = {...data,performance:perf};
     setData(newData);
     saveData(newData);
-    setForm({date:todayStr(),type:'hyrox_sim',totalMin:null,totalSec:null,stations:{},note:''});
+    setForm(blank());
+    setNotice('✓ Registro guardado');
   }
 
   async function parseWatch(e){
-    const file = e.target.files?.[0];
-    if(!file||!data.apiKey) return;
-    setWatchLoading(true);
-    try{
-      const {b64,mediaType} = await prepareImage(file);
-      const resp = await callClaude(data.apiKey,[{
-        role:'user',
-        content:[
-          {type:'image',source:{type:'base64',media_type:mediaType,data:b64}},
-          {type:'text',text:'Esta es una captura de Apple Watch de un entrenamiento. Extrae: tiempo total, distancia, calorías, FC promedio, FC máxima. Responde SOLO JSON: {"totalMin":number,"totalSec":number,"distanceKm":number,"kcalBurned":number,"avgHR":number,"maxHR":number}'}
-        ]
-      }]);
-      const json = JSON.parse(resp.match(/\{[\s\S]*\}/)?.[0]||'{}');
-      setForm(f=>({...f,totalMin:json.totalMin||f.totalMin,totalSec:json.totalSec||f.totalSec}));
-    }catch(err){
-      alert('Error: '+err.message);
+    const files = Array.from(e.target.files||[]);
+    if(!files.length||!data.apiKey) return;
+    setWatchLoading(true); setNotice('');
+    const got = {}; const errs = [];
+    for(const file of files){
+      try{
+        const {b64,mediaType} = await prepareImage(file);
+        const resp = await callClaude(data.apiKey,[{
+          role:'user',
+          content:[
+            {type:'image',source:{type:'base64',media_type:mediaType,data:b64}},
+            {type:'text',text:'Esta es una captura de Apple Watch / app Fitness de un entrenamiento. Extrae SOLO lo que veas escrito: duración total del entrenamiento, distancia, calorías activas, frecuencia cardiaca promedio y máxima. No calcules ni adivines: si no aparece, usa null. Responde SOLO JSON: {"durationMin":number,"durationSec":number,"distanceKm":number,"kcal":number,"hrAvg":number,"hrMax":number}. durationMin son los minutos enteros (si ves 1:16:52 → 76) y durationSec los segundos restantes (52).'}
+          ]
+        }]);
+        const j = extractJSON(resp);
+        if(!j||typeof j!=='object') throw new Error('respuesta ilegible');
+        const mm = toNum(j.durationMin), ss = toNum(j.durationSec);
+        if(mm!=null && mm>=0 && mm<=600 && got.min===undefined) got.min = Math.floor(mm);
+        if(ss!=null && ss>=0 && ss<60 && got.sec===undefined) got.sec = Math.round(ss);
+        else if(mm!=null && mm%1 && got.sec===undefined) got.sec = Math.round((mm%1)*60);
+        const hrA = toNum(j.hrAvg), hrM = toNum(j.hrMax), dk = toNum(j.distanceKm), kc = toNum(j.kcal);
+        if(hrA!=null && hrA>=40 && hrA<=230 && got.hrAvg===undefined) got.hrAvg = Math.round(hrA);
+        if(hrM!=null && hrM>=40 && hrM<=230 && got.hrMax===undefined) got.hrMax = Math.round(hrM);
+        if(dk!=null && dk>0 && dk<=200 && got.distanceKm===undefined) got.distanceKm = dk;
+        if(kc!=null && kc>0 && kc<=5000 && got.kcal===undefined) got.kcal = Math.round(kc);
+      }catch(err){ errs.push(err.message); }
     }
+    const labels = {min:'Min',sec:'Seg',hrAvg:'FC prom',hrMax:'FC máx',distanceKm:'Km',kcal:'Kcal'};
+    const keys = Object.keys(got);
+    if(keys.length) setForm(f=>({...f,...got}));
+    setNotice(
+      (keys.length ? '✓ Leí: '+keys.map(k=>labels[k]+' '+got[k]).join(', ')+'. ' : 'No pude leer valores. ')
+      + (errs.length ? 'Error: '+errs[0] : 'Revisa y corrige antes de guardar.')
+    );
     setWatchLoading(false);
     if(fileRef.current) fileRef.current.value='';
   }
+
+  const num = (k,label,step)=>React.createElement('div',{className:'flex-1'},
+    React.createElement('div',{className:'text-xs text-muted'},label),
+    React.createElement('input',{type:'number',inputMode:'decimal',step:step||'any',value:form[k]===null?'':form[k],onChange:e=>setForm({...form,[k]:e.target.value})})
+  );
 
   return React.createElement('div',{className:'card'},
     React.createElement('div',{className:'card-title'},'➕ Nuevo registro'),
     React.createElement('div',{className:'mb-8'},
       React.createElement('div',{className:'text-xs text-muted'},'Fecha'),
-      React.createElement('input',{type:'date',value:form.date,onChange:e=>setForm({...form,date:e.target.value})})
+      React.createElement('input',{type:'date',value:form.dateISO,onChange:e=>setForm({...form,dateISO:e.target.value})})
     ),
     React.createElement('div',{className:'mb-8'},
       React.createElement('div',{className:'text-xs text-muted'},'Tipo'),
       React.createElement('select',{value:form.type,onChange:e=>setForm({...form,type:e.target.value})},
-        React.createElement('option',{value:'hyrox_sim'},'Simulación Hyrox'),
-        React.createElement('option',{value:'hyrox_race'},'Carrera Hyrox'),
-        React.createElement('option',{value:'funcional'},'Clase Funcional'),
-        React.createElement('option',{value:'benchmark'},'Benchmark WOD')
+        Object.keys(PERF_TYPES).map(k=>React.createElement('option',{key:k,value:k},PERF_TYPES[k].label))
       )
     ),
-    React.createElement('div',{className:'flex-row mb-8'},
-      React.createElement('div',{className:'flex-1'},
-        React.createElement('div',{className:'text-xs text-muted'},'Min'),
-        React.createElement('input',{type:'number',value:form.totalMin||'',onChange:e=>setForm({...form,totalMin:e.target.value})})
-      ),
-      React.createElement('div',{className:'flex-1'},
-        React.createElement('div',{className:'text-xs text-muted'},'Seg'),
-        React.createElement('input',{type:'number',value:form.totalSec||'',onChange:e=>setForm({...form,totalSec:e.target.value})})
-      )
+    React.createElement('div',{className:'flex-row mb-8'},num('min','Min'),num('sec','Seg')),
+    React.createElement('div',{className:'flex-row mb-8'},num('hrAvg','FC prom'),num('hrMax','FC máx')),
+    React.createElement('div',{className:'flex-row mb-8'},num('distanceKm','Km (opc.)'),num('kcal','Kcal (opc.)')),
+    React.createElement('div',{className:'mb-8'},
+      React.createElement('div',{className:'text-xs text-muted mb-8'},'RPE'),
+      React.createElement(RpeSelect,{value:form.rpe,onChange:v=>setForm({...form,rpe:v})})
     ),
-    React.createElement('input',{ref:fileRef,type:'file',accept:'image/*',style:{display:'none'},onChange:parseWatch}),
+    React.createElement('input',{ref:fileRef,type:'file',accept:'image/*',multiple:true,style:{display:'none'},onChange:parseWatch}),
     React.createElement('button',{className:'btn btn-secondary w-full mb-8',onClick:()=>fileRef.current?.click(),disabled:watchLoading||!data.apiKey},
-      watchLoading?'Analizando...':'⌚ Foto Apple Watch'
+      watchLoading?'Analizando...':'⌚ Foto Apple Watch (1 o varias)'
     ),
-    React.createElement('textarea',{className:'mb-8',value:form.note,onChange:e=>setForm({...form,note:e.target.value}),placeholder:'Notas del entrenamiento...'}),
-    React.createElement('button',{className:'btn btn-primary w-full',onClick:save,disabled:!form.totalMin&&!form.totalSec},'Guardar registro')
+    notice && React.createElement('div',{className:'text-xs text-muted mb-8',style:{lineHeight:1.5}},notice),
+    React.createElement('textarea',{className:'mb-8',value:form.notes,onChange:e=>setForm({...form,notes:e.target.value}),placeholder:'Notas del entrenamiento...'}),
+    React.createElement('button',{className:'btn btn-primary w-full',onClick:save,disabled:!(durationMin>0)},'Guardar registro')
   );
 }
 
-function PerfHistory({perf}){
-  if(!perf||!perf.length) return React.createElement('div',{className:'empty-state'},
+function PerfHistory({data}){
+  const list = perfEntries(data);
+  if(!list.length) return React.createElement('div',{className:'empty-state'},
     React.createElement('div',{className:'icon'},'🏋️'),
     'Sin registros de rendimiento'
   );
-
-  const sorted = [...perf].sort((a,b)=>b.date.localeCompare(a.date));
   return React.createElement('div',null,
-    sorted.map(p=>
-      React.createElement('div',{key:p.id,className:'card'},
+    list.map((p,i)=>{
+      const t = PERF_TYPES[p.type] || {icon:'📊',label:p.type||'Sesión'};
+      const bits = [];
+      if(p.hrAvg) bits.push('❤️ '+p.hrAvg+(p.hrMax?' / '+p.hrMax:''));
+      if(p.rpe) bits.push('RPE '+p.rpe);
+      if(p.distanceKm) bits.push(p.distanceKm+' km');
+      if(p.kcal) bits.push(p.kcal+' kcal');
+      return React.createElement('div',{key:p.id||('p'+i),className:'card'},
         React.createElement('div',{className:'flex-row',style:{justifyContent:'space-between'}},
           React.createElement('div',null,
-            React.createElement('div',{className:'fw-bold'},p.type==='hyrox_sim'?'🔥 Sim Hyrox':p.type==='hyrox_race'?'🏁 Carrera':p.type==='funcional'?'🏃 Funcional':'📊 Benchmark'),
-            React.createElement('div',{className:'text-xs text-muted'},fmtDate(p.date))
+            React.createElement('div',{className:'fw-bold'},t.icon+' '+t.label),
+            React.createElement('div',{className:'text-xs text-muted'},p.dateISO?fmtDate(p.dateISO):'')
           ),
-          React.createElement('div',{className:'text-accent fw-bold',style:{fontSize:18}},
-            Math.floor((p.totalSec||0)/60),':',String((p.totalSec||0)%60).padStart(2,'0')
-          )
+          React.createElement('div',{className:'text-accent fw-bold',style:{fontSize:16}},fmtDur(p.durationMin))
         ),
-        p.note && React.createElement('div',{className:'text-xs text-muted mt-8'},p.note)
-      )
-    )
+        bits.length>0 && React.createElement('div',{className:'text-xs text-muted mt-8'},bits.join(' · ')),
+        p.notes && React.createElement('div',{className:'text-xs text-muted mt-8'},p.notes)
+      );
+    })
   );
 }
 
 function TabRendimiento({data,setData}){
   return React.createElement(Fragment,null,
     React.createElement(ErrorBoundary,{name:'PerfForm'},React.createElement(PerfForm,{data,setData})),
-    React.createElement(ErrorBoundary,{name:'PerfHistory'},React.createElement(PerfHistory,{perf:data.perf}))
+    React.createElement(ErrorBoundary,{name:'PerfHistory'},React.createElement(PerfHistory,{data}))
   );
 }
 
@@ -1138,8 +1352,14 @@ function SimpleChart({data:chartData,width,height,color,label,unit,yMin,yMax}){
   );
 }
 
+function sessionDone(data,dd){
+  const day = data.days && data.days[dd];
+  if(day && (day.funcionalDone||day.fuerzaDone||day.hyroxSimDone||day.correrDone)) return true;
+  return perfEntries(data).some(e=>e.dateISO===dd);
+}
+
 function WeeklyAdherence({data}){
-  // Last 4 weeks
+  // Last 4 weeks (días con sesión planeada vs. con sesión registrada: check del día o registro en Rendimiento)
   const today = todayStr();
   const weeks = [];
   for(let w=0;w<4;w++){
@@ -1147,14 +1367,10 @@ function WeeklyAdherence({data}){
     let planned=0, done=0;
     for(let d=0;d<7;d++){
       const dd = dateAdd(weekStart,d);
-      const type = getScheduleType(dd);
-      if(type==='rest') continue;
+      if(dd>today) continue;
+      if(getScheduleType(dd)==='rest') continue;
       planned++;
-      const day = data.days[dd];
-      if(!day) continue;
-      if(type==='funcional'&&day.funcionalDone) done++;
-      if(type==='fuerza'&&day.fuerzaDone) done++;
-      if(type==='hyroxSim'&&day.hyroxSimDone) done++;
+      if(sessionDone(data,dd)) done++;
     }
     weeks.unshift({label:'S'+(w===0?'actual':'-'+w),planned,done});
   }
@@ -1180,6 +1396,8 @@ function TabProgreso({data}){
   const weightData = sorted.filter(d=>days[d]?.weight?.kg).map(d=>({label:d.slice(5),v:days[d].weight.kg}));
   const fatData = sorted.filter(d=>days[d]?.weight?.bodyFatPct).map(d=>({label:d.slice(5),v:days[d].weight.bodyFatPct}));
   const muscleData = sorted.filter(d=>days[d]?.weight?.musclePct).map(d=>({label:d.slice(5),v:days[d].weight.musclePct}));
+  const visceralData = sorted.filter(d=>days[d]?.weight?.visceral).map(d=>({label:d.slice(5),v:days[d].weight.visceral}));
+  const waterData = sorted.filter(d=>days[d]?.weight?.waterPct).map(d=>({label:d.slice(5),v:days[d].weight.waterPct}));
   const kcalData = sorted.filter(d=>(days[d]?.meals||[]).length>0).map(d=>({
     label:d.slice(5),
     v:days[d].meals.reduce((s,m)=>s+(m.kcal||0),0)
@@ -1204,6 +1422,16 @@ function TabProgreso({data}){
     React.createElement(ErrorBoundary,{name:'Músculo chart'},
       React.createElement('div',{className:'card'},
         React.createElement(SimpleChart,{data:muscleData,width:350,height:180,color:'var(--green)',label:'Músculo (%)',unit:'%'})
+      )
+    ),
+    React.createElement(ErrorBoundary,{name:'Visceral chart'},
+      React.createElement('div',{className:'card'},
+        React.createElement(SimpleChart,{data:visceralData,width:350,height:180,color:'var(--purple)',label:'Grasa visceral',unit:'nivel'})
+      )
+    ),
+    React.createElement(ErrorBoundary,{name:'Agua chart'},
+      React.createElement('div',{className:'card'},
+        React.createElement(SimpleChart,{data:waterData,width:350,height:180,color:'var(--accent)',label:'Agua corporal (%)',unit:'%'})
       )
     ),
     React.createElement(ErrorBoundary,{name:'Kcal chart'},
@@ -1240,83 +1468,88 @@ function TabProgreso({data}){
 }
 
 // ─── TAB: Datos ────────────────────────────────────────────
+function reviewLine(r){
+  const date = r.closedAt || r.date || '';
+  const wEnd = r.weightEnd!=null ? r.weightEnd : r.avgWeight;
+  const wStart = r.weightStart;
+  const delta = (r.weightDelta!=null) ? Number(r.weightDelta) : (wStart!=null && wEnd!=null ? Number(wEnd)-Number(wStart) : null);
+  const parts = [];
+  if(r.avgKcal!=null) parts.push('Prom: '+r.avgKcal+' kcal');
+  if(wEnd!=null) parts.push('Peso: '+wEnd+' kg'+(delta!=null && !isNaN(delta) ? ' ('+(delta>0?'+':'')+delta.toFixed(1)+')' : ''));
+  if(r.tdee!=null) parts.push('TDEE est.: '+r.tdee);
+  if(r.adherence!=null) parts.push('Adherencia: '+r.adherence+'%');
+  if(r.daysLogged!=null) parts.push(r.daysLogged+'/'+(r.totalDays!=null?r.totalDays:'?')+' días con comidas');
+  return {date,text:parts.join(' · '),notes:r.notes||''};
+}
+
 function TabDatos({data,setData}){
   const [editingBlock,setEditingBlock] = useState(null);
 
-  function updateProfile(patch){
-    const newData = {...data,profile:{...data.profile,...patch}};
-    setData(newData);
-    saveData(newData);
-  }
+  function commit(newData){ setData(newData); saveData(newData); }
 
-  function updateApiKey(key){
-    const newData = {...data,apiKey:key};
-    setData(newData);
-    saveData(newData);
-  }
-
+  function updateProfile(patch){ commit({...data,profile:{...data.profile,...patch}}); }
+  function updateApiKey(key){ commit({...data,apiKey:key}); }
   function updateBlock(idx,patch){
     const blocks = [...data.plan.blocks];
     blocks[idx] = {...blocks[idx],...patch};
-    const newData = {...data,plan:{...data.plan,blocks}};
-    setData(newData);
-    saveData(newData);
+    commit({...data,plan:{...data.plan,blocks}});
+  }
+  function toggleFlex(wd){
+    const cur = Array.isArray(data.plan.flexDays)?data.plan.flexDays:[5,6];
+    const next = cur.includes(wd) ? cur.filter(x=>x!==wd) : [...cur,wd].sort();
+    commit({...data,plan:{...data.plan,flexDays:next}});
   }
 
-  // Review: apply changes to next block
   function applyReview(){
-    const {block,blockIdx,dayInBlock} = getCurrentBlock(data.plan, todayStr());
+    const {block,blockIdx} = getCurrentBlock(data.plan, todayStr());
     if(!block) return;
-
-    // Check if review already exists for this block
-    const existingReview = (data.reviews||[]).find(r=>r.blockId===block.id);
-    if(existingReview){
+    if((data.reviews||[]).some(r=>r.blockId===block.id)){
       alert('Ya existe una revisión para este bloque.');
       return;
     }
+    let blockStart = data.plan.startDate;
+    for(let i=0;i<blockIdx;i++) blockStart = dateAdd(blockStart, data.plan.blocks[i].days);
+    const today = todayStr();
 
-    // Collect stats for current block
-    const start = data.plan.startDate;
-    let blockStart = start;
-    for(let i=0;i<blockIdx;i++){
-      blockStart = dateAdd(blockStart, data.plan.blocks[i].days);
+    const dayKeys = Object.keys(data.days).filter(d=>d>=blockStart && d<=today).sort();
+    const daysWithMeals = dayKeys.filter(d=>(data.days[d]?.meals||[]).length>0);
+    const avgKcal = daysWithMeals.length ? Math.round(daysWithMeals.reduce((s,d)=>s+data.days[d].meals.reduce((ss,m)=>ss+(m.kcal||0),0),0)/daysWithMeals.length) : null;
+
+    const wDays = dayKeys.filter(d=>data.days[d]?.weight?.kg);
+    const weightStart = wDays.length ? data.days[wDays[0]].weight.kg : null;
+    const weightEnd = wDays.length ? data.days[wDays[wDays.length-1]].weight.kg : null;
+    const span = wDays.length>=2 ? Math.round((new Date(wDays[wDays.length-1]+'T12:00:00')-new Date(wDays[0]+'T12:00:00'))/86400000) : 0;
+    // TDEE estimado = ingesta promedio - (cambio de peso × 7700 kcal/kg) / días. Solo es confiable con ≥7 días entre pesajes.
+    const tdee = (avgKcal && span>=7) ? Math.round(avgKcal - ((weightEnd-weightStart)*7700)/span) : null;
+
+    let planned=0, done=0;
+    for(let dd=blockStart; dd<=today; dd=dateAdd(dd,1)){
+      if(getScheduleType(dd)==='rest') continue;
+      planned++;
+      if(sessionDone(data,dd)) done++;
     }
 
-    const dayKeys = Object.keys(data.days).filter(d=>d>=blockStart && d<=todayStr()).sort();
-    const daysWithMeals = dayKeys.filter(d=>(data.days[d]?.meals||[]).length>0);
-    const avgKcal = daysWithMeals.length ? Math.round(daysWithMeals.reduce((s,d)=>s+data.days[d].meals.reduce((ss,m)=>ss+(m.kcal||0),0),0)/daysWithMeals.length) : 0;
-
-    const weights = dayKeys.filter(d=>data.days[d]?.weight?.kg).map(d=>data.days[d].weight.kg);
-    const avgWeight = weights.length ? (weights.reduce((a,b)=>a+b,0)/weights.length).toFixed(1) : null;
-    const weightDelta = weights.length>=2 ? (weights[weights.length-1]-weights[0]).toFixed(1) : null;
-
     const review = {
-      id:uid(),
-      blockId:block.id,
-      blockIdx,
-      date:todayStr(),
-      avgKcal,
-      avgWeight,
-      weightDelta,
-      daysLogged:daysWithMeals.length,
-      totalDays:dayKeys.length
+      id:uid(), blockId:block.id, blockIdx,
+      closedAt:today, weightStart, weightEnd, tdee,
+      adherence: planned?pct(done,planned):null,
+      avgKcal, daysLogged:daysWithMeals.length, totalDays:dayKeys.length,
+      notes:'Revisión manual'
     };
-
-    const newReviews = [...(data.reviews||[]),review];
-    const newData = {...data,reviews:newReviews};
-    setData(newData);
-    saveData(newData);
+    commit({...data,reviews:[...(data.reviews||[]),review]});
     alert('Revisión guardada para '+block.name);
   }
 
+  const flexDays = Array.isArray(data.plan?.flexDays)?data.plan.flexDays:[5,6];
+  const perfCount = perfEntries(data).length;
+  const WD = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
+
   return React.createElement(Fragment,null,
-    // API Key
     React.createElement('div',{className:'card'},
       React.createElement('div',{className:'card-title'},'🔑 API Key'),
       React.createElement('input',{type:'password',value:data.apiKey||'',onChange:e=>updateApiKey(e.target.value),placeholder:'sk-ant-...'})
     ),
 
-    // Profile
     React.createElement('div',{className:'card'},
       React.createElement('div',{className:'card-title'},'👤 Perfil'),
       React.createElement('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}},
@@ -1331,27 +1564,28 @@ function TabDatos({data,setData}){
       )
     ),
 
-    // Schedule info
     React.createElement('div',{className:'card'},
       React.createElement('div',{className:'card-title'},'📅 Horario semanal'),
-      React.createElement('div',{className:'text-sm'},
-        '🏃 Lun / Mié — Clase Funcional Hyrox'), React.createElement('br'),
-      React.createElement('div',{className:'text-sm'},
-        '🏋️ Mar / Jue — Gimnasio (Fuerza A/B)'),
-      React.createElement('div',{className:'text-sm'},
-        '🔥 Vie — Simulación Hyrox 60%'),
-      React.createElement('div',{className:'text-sm'},
-        '😴 Sáb / Dom — Descanso')
+      React.createElement('div',{className:'text-sm'},'🏃 Lun / Mié — Clase Funcional Hyrox'),
+      React.createElement('div',{className:'text-sm'},'🏋️ Mar / Jue — Gimnasio (Fuerza A/B)'),
+      React.createElement('div',{className:'text-sm'},'🔥 Vie — Simulación Hyrox 60%'),
+      React.createElement('div',{className:'text-sm'},'😴 Sáb / Dom — Descanso'),
+      React.createElement('div',{className:'text-xs text-muted',style:{marginTop:10,marginBottom:6}},'Días FLEX (calorías altas, sociales):'),
+      React.createElement('div',{style:{display:'flex',gap:6,flexWrap:'wrap'}},
+        WD.map((n,i)=>{
+          const on = flexDays.includes(i+1);
+          return React.createElement('button',{key:n,className:'chip'+(on?' active':''),onClick:()=>toggleFlex(i+1)},n);
+        })
+      )
     ),
 
-    // Block edit
     React.createElement('div',{className:'card'},
       React.createElement('div',{className:'card-title'},'⚙️ Editar bloques'),
       (data.plan?.blocks||[]).map((b,i)=>
         React.createElement('div',{key:b.id,style:{padding:'6px 0',borderBottom:'1px solid var(--border)'}},
           React.createElement('div',{className:'flex-row',style:{justifyContent:'space-between',cursor:'pointer'},onClick:()=>setEditingBlock(editingBlock===i?null:i)},
             React.createElement('span',{className:'text-sm fw-bold'},b.name),
-            React.createElement('span',{className:'text-xs text-muted'},b.kcal,' kcal · ',b.days,'d')
+            React.createElement('span',{className:'text-xs text-muted'},b.kcal,'/',b.kcalFlex||b.kcal,' kcal · ',b.days,'d')
           ),
           editingBlock===i && React.createElement('div',{style:{padding:'8px 0',display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}},
             React.createElement('div',null,React.createElement('div',{className:'text-xs text-muted'},'Kcal base'),React.createElement('input',{type:'number',value:b.kcal,onChange:e=>updateBlock(i,{kcal:Number(e.target.value)})})),
@@ -1365,28 +1599,30 @@ function TabDatos({data,setData}){
       )
     ),
 
-    // Review
     React.createElement('div',{className:'card'},
       React.createElement('div',{className:'card-title'},'📊 Revisión de bloque'),
       React.createElement('button',{className:'btn btn-primary w-full',onClick:applyReview},'Generar revisión del bloque actual'),
       (data.reviews||[]).length>0 && React.createElement('div',{className:'mt-12'},
         React.createElement('div',{className:'text-xs text-muted mb-8'},'Revisiones anteriores:'),
-        (data.reviews||[]).map(r=>
-          React.createElement('div',{key:r.id,className:'text-xs',style:{padding:'4px 0',borderBottom:'1px solid var(--border)'}},
+        (data.reviews||[]).map((r,i)=>{
+          const L = reviewLine(r);
+          return React.createElement('div',{key:r.id||('r'+i),className:'text-xs',style:{padding:'4px 0',borderBottom:'1px solid var(--border)'}},
             React.createElement('span',{className:'fw-bold'},r.blockId||'Bloque'),
-            ' — ',r.date,' · Avg: ',r.avgKcal,' kcal · Peso: ',r.avgWeight,' kg (',r.weightDelta>0?'+':'',r.weightDelta,' kg) · ',r.daysLogged,'/',r.totalDays,' días'
-          )
-        )
+            ' — ',L.date,' · ',L.text,
+            L.notes && React.createElement('div',{className:'text-muted'},L.notes)
+          );
+        })
       )
     ),
 
-    // Backup/Restore
     React.createElement('div',{className:'card'},
       React.createElement('div',{className:'card-title'},'💾 Datos'),
       React.createElement('div',{className:'text-xs text-muted mb-8'},'Versión: ',data.version,' · Días: ',Object.keys(data.days||{}).length,' · Comidas: ',
-        Object.values(data.days||{}).reduce((s,d)=>s+(d.meals||[]).length,0)
+        Object.values(data.days||{}).reduce((s,d)=>s+(d.meals||[]).length,0),' · Frecuentes: ',(data.frequentFoods||[]).length
       ),
-      React.createElement('div',{className:'text-xs text-muted'},'Reviews: ',(data.reviews||[]).length,' · Perf: ',(data.perf||[]).length)
+      React.createElement('div',{className:'text-xs text-muted'},'Revisiones: ',(data.reviews||[]).length,' · Rendimiento: ',perfCount),
+      data.lastExportAt && React.createElement('div',{className:'text-xs text-muted',style:{marginTop:4}},'Último backup: ',String(data.lastExportAt).slice(0,10)),
+      React.createElement('div',{className:'text-xs text-muted',style:{marginTop:8}},'Usa 💾 (arriba) para respaldar y 📂 para restaurar. Al restaurar se guarda automáticamente una copia de lo que tenías.')
     )
   );
 }
@@ -1399,18 +1635,26 @@ function App(){
   const [toast,setToast] = useState('');
   const fileRef = useRef();
 
+  // Días flex configurables (global leído por isFlexDay)
+  FLEX_DAYS = Array.isArray(data.plan&&data.plan.flexDays) ? data.plan.flexDays : [5,6];
+
+  // Guardar la versión migrada una sola vez al abrir
+  useEffect(()=>{ saveData(data); },[]);
+
   function showToast(msg){
     setToast(msg);
     setTimeout(()=>setToast(''),2500);
   }
 
   function doBackup(){
-    const json = JSON.stringify(data,null,2);
+    const stamped = {...data,lastExportAt:new Date().toISOString()};
+    const json = JSON.stringify(stamped,null,2);
     const blob = new Blob([json],{type:'application/json'});
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href=url; a.download='hyroxtrack-'+todayStr()+'.json'; a.click();
-    URL.revokeObjectURL(url);
+    setTimeout(()=>URL.revokeObjectURL(url),1000);
+    setData(stamped); saveData(stamped);
     showToast('Backup descargado');
   }
 
@@ -1425,35 +1669,15 @@ function App(){
     reader.onload = ()=>{
       try{
         const imported = JSON.parse(reader.result);
-        if(!imported||typeof imported!=='object') throw new Error('invalid');
-        // Migrate: add kcalFlex if missing
-        if(imported.plan?.blocks){
-          imported.plan.blocks = imported.plan.blocks.map(b=>({
-            ...b,
-            kcalFlex: b.kcalFlex || b.kcal
-          }));
-        }
-        // Migrate: add hyroxSim fields to days
-        if(imported.days){
-          Object.keys(imported.days).forEach(k=>{
-            const d = imported.days[k];
-            if(d.hyroxSimDone===undefined) d.hyroxSimDone = false;
-            if(d.hyroxSimRpe===undefined) d.hyroxSimRpe = null;
-            if(d.hyroxSimMin===undefined) d.hyroxSimMin = null;
-          });
-        }
-        // Fix reviews duplication bug: deduplicate
-        if(Array.isArray(imported.reviews)){
-          const seen = new Set();
-          imported.reviews = imported.reviews.filter(r=>{
-            const key = JSON.stringify(r);
-            if(seen.has(key)) return false;
-            seen.add(key);
-            return true;
-          });
-        }
-        setData(imported);
-        saveData(imported);
+        if(!imported||typeof imported!=='object'||Array.isArray(imported)) throw new Error('archivo inválido');
+        if(!imported.days && !imported.plan) throw new Error('no parece un backup de HyroxTrack');
+        // Copia de seguridad de lo actual antes de sobrescribir
+        try{ localStorage.setItem(STORAGE_KEY+'_prev', JSON.stringify(data)); }catch(_){}
+        // Conservar la API key actual si el backup no trae una
+        if(!imported.apiKey) imported.apiKey = data.apiKey||'';
+        const clean = normalizeData(imported);
+        setData(clean);
+        saveData(clean);
         showToast('Datos restaurados ✓');
       }catch(err){
         alert('Error al restaurar: '+err.message);
@@ -1467,7 +1691,7 @@ function App(){
 
   return React.createElement('div',{className:'app'},
     React.createElement(Toast,{msg:toast}),
-    React.createElement('input',{ref:fileRef,type:'file',accept:'.json',style:{display:'none'},onChange:handleRestore}),
+    React.createElement('input',{ref:fileRef,type:'file',accept:'.json,application/json',style:{display:'none'},onChange:handleRestore}),
     React.createElement(TopBar,{block,blockIdx,dayInBlock,onBackup:doBackup,onRestore:doRestore}),
     React.createElement('div',{className:'content'},
       tab===0 && React.createElement(ErrorBoundary,{name:'TabDia'},React.createElement(TabDia,{data,setData,date,setDate})),
@@ -1480,7 +1704,6 @@ function App(){
 }
 
 ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App));
-
 </script>
 <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
