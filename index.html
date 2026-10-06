@@ -49,8 +49,8 @@ textarea{resize:vertical;min-height:60px;}
 .check-label{flex:1;font-size:14px;}
 .check-detail{font-size:12px;color:var(--text2);}
 
-.rpe-select{display:flex;gap:4px;}
-.rpe-btn{width:28px;height:28px;border-radius:6px;font-size:12px;font-weight:700;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;}
+.rpe-select{display:flex;gap:4px;flex-wrap:wrap;}
+.rpe-btn{width:28px;height:34px;border-radius:6px;font-size:12px;font-weight:700;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;}
 .rpe-btn.active{background:var(--accent2);border-color:var(--accent);}
 
 .macro-bar{height:8px;border-radius:4px;background:var(--surface2);overflow:hidden;margin-top:4px;}
@@ -112,6 +112,12 @@ textarea{resize:vertical;min-height:60px;}
 
 .note-area{margin-top:8px;}
 
+.icon-btn{min-width:36px;min-height:36px;display:inline-flex;align-items:center;justify-content:center;border-radius:8px;font-size:15px;padding:0 4px;}
+.icon-btn:active{background:var(--surface2);}
+.chip-del{border-color:var(--red);color:var(--red);}
+.link-btn{padding:6px 2px;text-decoration:underline;}
+.banner{border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:13px;background:#d2992226;border:1px solid #d2992280;display:flex;gap:8px;align-items:center;justify-content:space-between;}
+.copy-btn{min-width:32px;min-height:32px;}
 .toast{position:fixed;top:calc(12px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);background:var(--green);color:#fff;padding:8px 20px;border-radius:8px;font-size:13px;font-weight:600;z-index:300;animation:fadeInOut 2s ease;}
 @keyframes fadeInOut{0%{opacity:0;transform:translateX(-50%) translateY(-10px);}10%{opacity:1;transform:translateX(-50%) translateY(0);}80%{opacity:1;}100%{opacity:0;}}
 
@@ -246,14 +252,17 @@ function safeGet(key){
   }catch(e){ return null; }
 }
 
+function isObj(x){ return !!x && typeof x==='object' && !Array.isArray(x); }
+
 function normalizeData(d){
-  if(!d || typeof d!=='object' || Array.isArray(d)) return defaultData();
+  if(!isObj(d)) return defaultData();
   const def = defaultPlan();
   d.version = VERSION;
   if(typeof d.apiKey!=='string') d.apiKey = '';
-  if(!d.profile || typeof d.profile!=='object') d.profile = {...DEFAULT_PROFILE};
-  if(!d.plan || typeof d.plan!=='object') d.plan = def;
+  if(!isObj(d.profile)) d.profile = {...DEFAULT_PROFILE};
+  if(!isObj(d.plan)) d.plan = def;
   if(!d.plan.startDate) d.plan.startDate = def.startDate;
+  if(Array.isArray(d.plan.blocks)) d.plan.blocks = d.plan.blocks.filter(b=>isObj(b) && b.id);
   if(!Array.isArray(d.plan.blocks) || !d.plan.blocks.length) d.plan.blocks = def.blocks;
 
   // Migración de dieta: la nueva dieta (2,100 base / 2,500 flex) reemplaza los macros de los bloques.
@@ -267,13 +276,23 @@ function normalizeData(d){
     });
     d.plan.dietVersion = 2;
   }
-  d.plan.blocks = d.plan.blocks.map(b=>({...b,kcalFlex:b.kcalFlex||b.kcal}));
-  if(!Array.isArray(d.plan.flexDays)) d.plan.flexDays = [5,6];
+  if(d.plan.dietVersion < 3){
+    d.plan.blocks = d.plan.blocks.map(b=>{ const df = def.blocks.find(x=>x.id===b.id); return df ? {...b,note:df.note} : b; });
+    d.plan.dietVersion = 3;
+  }
+  d.plan.blocks = d.plan.blocks.map(b=>{
+    const kcal = Number(b.kcal)||2100;
+    return {...b,name:String(b.name||b.id),days:Math.max(1,Number(b.days)||28),kcal,kcalFlex:Number(b.kcalFlex)||kcal,
+      protein:Number(b.protein)||0,carbs:Number(b.carbs)||0,fat:Number(b.fat)||0};
+  });
+  d.plan.flexDays = Array.isArray(d.plan.flexDays) ? d.plan.flexDays.map(Number).filter(x=>x>=1&&x<=7) : [5,6];
 
   // Rendimiento: estructura {hyrox:[],secondary:[]}; migra el formato "perf" de versiones intermedias
-  if(!d.performance || typeof d.performance!=='object') d.performance = {hyrox:[],secondary:[]};
-  if(!Array.isArray(d.performance.hyrox)) d.performance.hyrox = [];
-  if(!Array.isArray(d.performance.secondary)) d.performance.secondary = [];
+  if(Array.isArray(d.performance)) d.performance = {hyrox:[],secondary:d.performance};
+  if(!isObj(d.performance)) d.performance = {hyrox:[],secondary:[]};
+  ['hyrox','secondary'].forEach(g=>{
+    d.performance[g] = Array.isArray(d.performance[g]) ? d.performance[g].filter(isObj).map(e=>({...e,id:e.id||('p'+uid())})) : [];
+  });
   if(Array.isArray(d.perf)){
     d.perf.forEach(p=>{
       if(!p) return;
@@ -284,7 +303,8 @@ function normalizeData(d){
   delete d.perf;
 
   // Comidas frecuentes
-  if(!Array.isArray(d.frequentFoods) || !d.frequentFoods.length) d.frequentFoods = DEFAULT_FREQUENT.map(f=>({...f}));
+  if(Array.isArray(d.frequentFoods)) d.frequentFoods = d.frequentFoods.filter(f=>isObj(f) && f.name).map(f=>({...f,id:f.id||('ff'+uid()),name:String(f.name),kcal:Number(f.kcal)||0,protein:Number(f.protein)||0,carbs:Number(f.carbs)||0,fat:Number(f.fat)||0}));
+  if(!Array.isArray(d.frequentFoods)) d.frequentFoods = DEFAULT_FREQUENT.map(f=>({...f}));
 
   // Revisiones: quita duplicados exactos (bug antiguo)
   if(!Array.isArray(d.reviews)) d.reviews = [];
@@ -294,17 +314,26 @@ function normalizeData(d){
     const key = JSON.stringify({...r,id:undefined});
     if(seen.has(key)) return false;
     seen.add(key); return true;
-  });
+  }).map(r=>r.id ? r : {...r,id:'r'+uid()+Math.random().toString(36).slice(2,5)});
 
   // Días
-  if(!d.days || typeof d.days!=='object') d.days = {};
+  if(!isObj(d.days)) d.days = {};
   Object.keys(d.days).forEach(k=>{
     let day = d.days[k];
-    if(!day || typeof day!=='object'){ d.days[k] = emptyDay(); return; }
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(k)){ return; }
+    if(!isObj(day)){ d.days[k] = emptyDay(); return; }
     if(!Array.isArray(day.meals)) day.meals = [];
-    if(!day.weight || typeof day.weight!=='object') day.weight = {};
-    if(!day.lifts || typeof day.lifts!=='object') day.lifts = {};
-    if(!day.supps || typeof day.supps!=='object') day.supps = {};
+    const ids = new Set();
+    day.meals = day.meals.filter(m=>m && typeof m==='object').map(m=>{
+      const mm = {...m,name:String(m.name||'Comida'),kcal:Number(m.kcal)||0,protein:Number(m.protein)||0,carbs:Number(m.carbs)||0,fat:Number(m.fat)||0};
+      if(!mm.id || ids.has(mm.id)) mm.id = uid()+Math.random().toString(36).slice(2,5);
+      ids.add(mm.id);
+      return mm;
+    });
+    if(!isObj(day.weight)) day.weight = {};
+    if(!isObj(day.lifts)) day.lifts = {};
+    if(!isObj(day.supps)) day.supps = {};
+    if(typeof day.note!=='string') day.note = day.note==null?'':String(day.note);
     if(day.hyroxSimDone===undefined) day.hyroxSimDone = false;
     if(day.hyroxSimRpe===undefined) day.hyroxSimRpe = null;
     if(day.hyroxSimMin===undefined) day.hyroxSimMin = null;
@@ -317,24 +346,54 @@ function normalizeData(d){
   return d;
 }
 
+let LOAD_WARNING = '';
+let SKIP_INITIAL_SAVE = false;
 function loadData(){
+  let raw = null;
+  try{ raw = localStorage.getItem(STORAGE_KEY); }catch(e){}
   const d = safeGet(STORAGE_KEY);
-  if(!d) return defaultData();
-  return normalizeData(d);
+  if(!d){
+    if(raw){
+      // Datos ilegibles: se guardan aparte antes de empezar de cero, para poder recuperarlos
+      try{ localStorage.setItem(STORAGE_KEY+'_corrupt_'+Date.now(), raw); }catch(e){ SKIP_INITIAL_SAVE = true; }
+      LOAD_WARNING = 'Los datos guardados estaban dañados. Se apartó una copia y la app arrancó vacía: restaura tu último backup con 📂.';
+    }
+    return defaultData();
+  }
+  try{ return normalizeData(d); }
+  catch(e){
+    try{ localStorage.setItem(STORAGE_KEY+'_corrupt_'+Date.now(), raw); }catch(_){ SKIP_INITIAL_SAVE = true; }
+    LOAD_WARNING = 'No se pudieron leer algunos datos ('+e.message+'). Se apartó una copia; restaura tu último backup con 📂.';
+    return defaultData();
+  }
 }
 
+let saveWarned = false;
+let lastSaveOk = true;
 function saveData(d){
-  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(d)); }catch(e){}
+  try{
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(d));
+    saveWarned = false;
+    lastSaveOk = true;
+    return true;
+  }catch(e){
+    lastSaveOk = false;
+    if(!saveWarned){
+      saveWarned = true;
+      setTimeout(()=>alert('⚠️ No se pudo guardar en este dispositivo ('+(e&&e.name||'error')+'). Haz un backup (💾) ahora para no perder datos.'),0);
+    }
+    return false;
+  }
 }
 
 function defaultPlan(){
   return {
     startDate:'2026-09-22',
-    dietVersion:2,
+    dietVersion:3,
     flexDays:[5,6],
     maintenanceKcal:2550,
     blocks:[
-      {id:'b1',name:'Definición 1',goal:'cut',days:28,kcal:2100,kcalFlex:2500,protein:180,carbs:200,fat:67,note:'Base 2,100 kcal. Días flex (Vie-Sáb): 2,500 max. Promedio semanal ~2,180.'},
+      {id:'b1',name:'Definición 1',goal:'cut',days:28,kcal:2100,kcalFlex:2500,protein:180,carbs:200,fat:67,note:'Base 2,100 kcal. Días flex (Vie-Sáb): 2,500 max. Promedio semanal ~2,215.'},
       {id:'b2',name:'Definición 2',goal:'cut',days:28,kcal:2000,kcalFlex:2400,protein:180,carbs:185,fat:65,note:'Ajuste con datos reales. Ritmo meta: 0.30–0.45 kg/semana.'},
       {id:'b3',name:'Definición 3',goal:'cut',days:28,kcal:1950,kcalFlex:2350,protein:175,carbs:178,fat:63,note:'Vigila fuerza y sueño antes de recortar más.'},
       {id:'b4',name:'Descanso metabólico',goal:'maintain',days:14,kcal:2550,kcalFlex:2550,protein:170,carbs:300,fat:78,note:'Navidad y Año Nuevo a mantenimiento. Revierte adaptación metabólica.'},
@@ -408,7 +467,8 @@ function isFlexDay(dateStr){
 
 function getTargetKcal(block, dateStr){
   if(!block) return 2100;
-  return isFlexDay(dateStr) ? (block.kcalFlex || block.kcal) : block.kcal;
+  const base = block.kcal || 2100;
+  return isFlexDay(dateStr) ? (block.kcalFlex || base) : base;
 }
 
 // ─── API helpers ───────────────────────────────────────────
@@ -416,35 +476,46 @@ const MODEL_CHAIN = ['claude-sonnet-5-5','claude-haiku-4-5-20251001','claude-opu
 let workingModel = null;
 
 async function callClaude(apiKey, messages, maxTokens=1024){
-  if(!apiKey) throw new Error('Falta la API key (pestaña Datos)');
+  const key = String(apiKey||'').trim();
+  if(!key) throw new Error('Falta la API key (pestaña Datos)');
   const models = workingModel ? [workingModel, ...MODEL_CHAIN.filter(m=>m!==workingModel)] : MODEL_CHAIN;
   let lastErr = '';
   for(const model of models){
     let res;
+    const ctrl = (typeof AbortController!=='undefined') ? new AbortController() : null;
+    const timer = ctrl ? setTimeout(()=>ctrl.abort(), 90000) : null;
     try{
       res = await fetch('https://api.anthropic.com/v1/messages',{
         method:'POST',
         headers:{
           'Content-Type':'application/json',
-          'x-api-key':apiKey,
+          'x-api-key':key,
           'anthropic-version':'2023-06-01',
           'anthropic-dangerous-direct-browser-access':'true'
         },
-        body:JSON.stringify({model,max_tokens:maxTokens,messages})
+        body:JSON.stringify({model,max_tokens:maxTokens,messages}),
+        signal: ctrl ? ctrl.signal : undefined
       });
     }catch(netErr){
-      throw new Error('Sin conexión con la API: '+netErr.message);
+      if(timer) clearTimeout(timer);
+      if(netErr && netErr.name==='AbortError') throw new Error('La IA tardó demasiado en responder. Intenta de nuevo.');
+      throw new Error('Sin conexión con la API. Revisa tu internet e intenta de nuevo.');
     }
+    if(timer) clearTimeout(timer);
     if(res.ok){
       workingModel = model;
       const data = await res.json();
-      return data.content?.[0]?.text || '';
+      const block = (data.content||[]).find(b=>b && b.type==='text') || (data.content||[])[0];
+      return (block && block.text) || '';
     }
     let detail = '';
     try{ const j = await res.json(); detail = j?.error?.message || ''; }catch(e){}
     lastErr = `API ${res.status}${detail?': '+detail:''} (modelo ${model})`;
-    // 404 = modelo no disponible → probar el siguiente. Otros errores (401, 429, 400...) no se arreglan cambiando de modelo.
-    if(res.status !== 404) throw new Error(lastErr);
+    if(res.status===401 || res.status===403) throw new Error('API key inválida o sin permiso. Revísala en la pestaña Datos.');
+    if(res.status===429) throw new Error('Límite de uso de la API alcanzado. Espera un minuto e intenta de nuevo.');
+    if(res.status===400 && /credit|balance/i.test(detail)) throw new Error('Tu cuenta de la API no tiene saldo. Recárgala en console.anthropic.com.');
+    // 404 = modelo no disponible; 5xx/529 = servidor saturado → probar el siguiente modelo
+    if(!(res.status===404 || res.status>=500)) throw new Error(lastErr);
   }
   throw new Error(lastErr || 'API sin respuesta');
 }
@@ -462,7 +533,7 @@ async function prepareImage(file){
   // Resize/convert to JPEG (gallery photos can be HEIC or >5MB, which the API rejects)
   try{
     const url = URL.createObjectURL(file);
-    const img = await new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src=url;});
+    const img = await new Promise((res,rej)=>{const i=new Image();const t=setTimeout(()=>rej(new Error('timeout imagen')),15000);i.onload=()=>{clearTimeout(t);res(i);};i.onerror=e=>{clearTimeout(t);rej(e);};i.src=url;});
     const max = 1600;
     const scale = Math.min(1, max/Math.max(img.naturalWidth,img.naturalHeight));
     const c = document.createElement('canvas');
@@ -496,13 +567,6 @@ function Toast({msg}){
   return React.createElement('div',{className:'toast'},msg);
 }
 
-function RpeSelect({value,onChange}){
-  return React.createElement('div',{className:'rpe-select'},
-    [5,6,7,8,9,10].map(n=>
-      React.createElement('button',{key:n,className:'rpe-btn'+(value===n?' active':''),onClick:()=>onChange(n)},n)
-    )
-  );
-}
 
 function MacroBar({current,target,color}){
   const p = clamp(pct(current,target),0,150);
@@ -526,6 +590,26 @@ function ProgressRing({pct:p,size,stroke,color}){
 }
 
 // ─── TopBar ────────────────────────────────────────────────
+function localDate(iso){
+  const d = new Date(iso);
+  if(isNaN(d)) return '';
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function daysSince(iso){
+  const ld = iso ? localDate(iso) : '';
+  if(!ld) return null;
+  return Math.round((new Date(todayStr()+'T12:00:00')-new Date(ld+'T12:00:00'))/86400000);
+}
+
+function BackupBanner({lastExportAt,onBackup}){
+  const n = daysSince(lastExportAt);
+  if(n!==null && n<3) return null;
+  return React.createElement('div',{className:'banner'},
+    React.createElement('span',null,'⚠️ ',n===null?'Aún no tienes backup.':'Último backup hace '+n+' días.',' Safari puede borrar los datos si no abres la app en 7 días.'),
+    React.createElement('button',{className:'btn btn-primary',style:{padding:'6px 10px',whiteSpace:'nowrap'},onClick:onBackup},'💾 Respaldar')
+  );
+}
+
 function TopBar({block,blockIdx,dayInBlock,onBackup,onRestore}){
   const goalTag = block ? {cut:'tag-cut',maintain:'tag-maintain',lean:'tag-lean'}[block.goal]||'' : '';
   return React.createElement('div',{className:'topbar'},
@@ -569,38 +653,56 @@ function DaySelector({date,onChange}){
   );
 }
 
+// ─── Tipo de sesión efectivo (horario o cambio manual del día) ─────
+function dayType(data,dd){
+  const day = data.days && data.days[dd];
+  return (day && day.typeOverride) || getScheduleType(dd);
+}
+function routineFor(day,dd){
+  const t = (day && day.typeOverride) || getScheduleType(dd);
+  if(t!=='fuerza') return null;
+  if(day && day.routineOverride==='A') return ROUTINE_A;
+  if(day && day.routineOverride==='B') return ROUTINE_B;
+  return getRoutineForDate(dd) || ROUTINE_A;
+}
+const SESSION_OPTS = [
+  ['','Según horario'],['funcional','🏃 Funcional'],['fuerzaA','🏋️ Fuerza A'],['fuerzaB','🏋️ Fuerza B'],['hyroxSim','🔥 Simulación Hyrox'],['rest','😴 Descanso']
+];
+
 // ─── Checklist Card ────────────────────────────────────────
-function ChecklistCard({day,date,onUpdate,routine}){
-  const type = getScheduleType(date);
-
+function ChecklistCard({day,date,type,routine,onUpdate,hasSimPerf,onSaveSim}){
   const items = [];
-  if(type==='funcional'){
-    items.push({key:'funcionalDone',rpeKey:'funcionalRpe',label:'Clase Funcional (Hyrox)',icon:'🏃'});
-  } else if(type==='fuerza'){
-    items.push({key:'fuerzaDone',rpeKey:'fuerzaRpe',label:routine?routine.name:'Fuerza',icon:'🏋️'});
-  } else if(type==='hyroxSim'){
-    items.push({key:'hyroxSimDone',rpeKey:'hyroxSimRpe',label:'Simulación Hyrox 60%',icon:'🔥'});
-  }
+  if(type==='funcional') items.push({key:'funcionalDone',rpeKey:'funcionalRpe',label:'Clase Funcional (Hyrox)',icon:'🏃'});
+  else if(type==='fuerza') items.push({key:'fuerzaDone',rpeKey:'fuerzaRpe',label:routine?routine.name:'Fuerza',icon:'🏋️'});
+  else if(type==='hyroxSim') items.push({key:'hyroxSimDone',rpeKey:'hyroxSimRpe',label:'Simulación Hyrox 60%',icon:'🔥'});
 
-  if(type==='rest'){
-    return React.createElement('div',{className:'card'},
-      React.createElement('div',{className:'card-title'},'😴 Día de descanso'),
-      React.createElement('div',{className:'text-sm text-muted'},'Recuperación activa: caminar, estirar, foam roll.')
-    );
+  const ovValue = !day.typeOverride ? '' : day.typeOverride==='fuerza' ? ('fuerza'+(day.routineOverride||'A')) : day.typeOverride;
+  function setOverride(v){
+    if(!v) onUpdate({typeOverride:null,routineOverride:null});
+    else if(v==='fuerzaA'||v==='fuerzaB') onUpdate({typeOverride:'fuerza',routineOverride:v.slice(-1)});
+    else onUpdate({typeOverride:v,routineOverride:null});
   }
+  const selector = React.createElement('select',{value:ovValue,onChange:e=>setOverride(e.target.value),'aria-label':'Cambiar sesión del día',style:{width:'auto',padding:'4px 8px',fontSize:12}},
+    SESSION_OPTS.map(([v,l])=>React.createElement('option',{key:v,value:v},l))
+  );
 
   return React.createElement('div',{className:'card'},
-    React.createElement('div',{className:'card-title'},'Entrenamiento'),
+    React.createElement('div',{className:'card-title',style:{justifyContent:'space-between'}},
+      React.createElement('span',null,type==='rest'?'😴 Día de descanso':'Entrenamiento'),
+      selector
+    ),
+    type==='rest' && React.createElement('div',{className:'text-sm text-muted'},'Recuperación activa: caminar, estirar, foam roll. ¿Entrenaste hoy? Cambia la sesión arriba.'),
+    day.typeOverride && React.createElement('div',{className:'text-xs text-muted mb-8'},'Sesión cambiada manualmente para este día.'),
     items.map(it=>
       React.createElement('div',{key:it.key,className:'check-row'},
-        React.createElement('div',{
-          className:'check-box'+(day[it.key]?' done':''),
-          onClick:()=>onUpdate({[it.key]:!day[it.key]})
+        React.createElement('button',{
+          className:'check-box'+(day[it.key]?' done':''),'aria-label':'Marcar hecho',
+          onClick:()=>onUpdate(cur=>({[it.key]:!cur[it.key]}))
         },day[it.key]?'✓':''),
         React.createElement('div',{className:'flex-1'},
-          React.createElement('div',{className:'check-label'},it.icon,' ',it.label),
+          React.createElement('div',{className:'check-label',onClick:()=>onUpdate(cur=>({[it.key]:!cur[it.key]}))},it.icon,' ',it.label),
           day[it.key] && React.createElement('div',{className:'mt-8'},
-            React.createElement('div',{className:'text-xs text-muted mb-8'},'RPE'),
+            React.createElement('div',{className:'text-xs text-muted mb-8'},'RPE (esfuerzo 1–10)'),
             React.createElement(RpeSelect,{value:day[it.rpeKey],onChange:v=>onUpdate({[it.rpeKey]:v})})
           )
         )
@@ -608,9 +710,20 @@ function ChecklistCard({day,date,onUpdate,routine}){
     ),
     type==='hyroxSim' && day.hyroxSimDone && React.createElement('div',{className:'mt-8'},
       React.createElement('div',{className:'text-xs text-muted mb-8'},'Duración (min)'),
-      React.createElement('input',{type:'number',value:day.hyroxSimMin||'',placeholder:'minutos',
-        onChange:e=>onUpdate({hyroxSimMin:e.target.value?Number(e.target.value):null})
-      })
+      React.createElement('input',{type:'number',inputMode:'decimal',value:day.hyroxSimMin==null?'':day.hyroxSimMin,placeholder:'minutos',
+        onChange:e=>{const v=e.target.value; onUpdate({hyroxSimMin:v===''?null:Number(v)});}
+      }),
+      day.hyroxSimMin>0 && (hasSimPerf
+        ? React.createElement('div',{className:'text-xs text-green',style:{marginTop:6}},'✓ Registrada en Rendimiento')
+        : React.createElement('button',{className:'btn btn-secondary w-full mt-8',onClick:onSaveSim},'➕ Guardar también en Rendimiento'))
+    )
+  );
+}
+
+function RpeSelect({value,onChange}){
+  return React.createElement('div',{className:'rpe-select'},
+    [1,2,3,4,5,6,7,8,9,10].map(n=>
+      React.createElement('button',{key:n,className:'rpe-btn'+(value===n?' active':''),onClick:()=>onChange(value===n?null:n)},n)
     )
   );
 }
@@ -632,28 +745,35 @@ function ExpandableRoutine({routine,lifts,onUpdateLifts,days,date}){
   function blankSets(ex){ return Array.from({length:ex.sets},()=>({w:0,r:0,rir:2})); }
 
   function updateSet(ex,setIdx,field,val){
-    const cur = {...lifts};
-    cur[ex.id] = [...(cur[ex.id] || blankSets(ex))];
-    cur[ex.id][setIdx] = {...cur[ex.id][setIdx],[field]:Number(val)||0};
-    onUpdateLifts(cur);
+    const n = val===''?0:Number(String(val).replace(',','.'));
+    onUpdateLifts(prev=>{
+      const cur = {...prev};
+      cur[ex.id] = [...(cur[ex.id] || blankSets(ex))];
+      while(cur[ex.id].length<ex.sets) cur[ex.id].push({w:0,r:0,rir:2});
+      cur[ex.id][setIdx] = {...cur[ex.id][setIdx],[field]:isFinite(n)?n:0};
+      return cur;
+    });
   }
 
   function copyPrevSet(ex,setIdx){
-    if(setIdx===0 || !lifts[ex.id]) return;
-    const cur = {...lifts};
-    cur[ex.id] = [...cur[ex.id]];
-    cur[ex.id][setIdx] = {...cur[ex.id][setIdx-1]};
-    onUpdateLifts(cur);
+    if(setIdx===0) return;
+    onUpdateLifts(prev=>{
+      if(!prev[ex.id] || !prev[ex.id][setIdx-1]) return prev;
+      const cur = {...prev};
+      cur[ex.id] = [...cur[ex.id]];
+      cur[ex.id][setIdx] = {...cur[ex.id][setIdx-1]};
+      return cur;
+    });
   }
 
   function useLast(ex,last){
-    const cur = {...lifts};
+    const mine = lifts[ex.id];
+    if(Array.isArray(mine) && mine.some(x=>x && (x.w>0||x.r>0)) && !window.confirm('Ya capturaste sets de '+ex.label+' hoy. ¿Reemplazarlos con la carga anterior?')) return;
     const src = last.sets;
-    cur[ex.id] = Array.from({length:ex.sets},(_,i)=>{
+    onUpdateLifts(prev=>({...prev,[ex.id]:Array.from({length:ex.sets},(_,i)=>{
       const p = src[i] || src[src.length-1] || {};
       return {w:p.w||0, r:p.r||0, rir:p.rir==null?2:p.rir};
-    });
-    onUpdateLifts(cur);
+    })}));
   }
 
   return React.createElement('div',{className:'card'},
@@ -675,7 +795,7 @@ function ExpandableRoutine({routine,lifts,onUpdateLifts,days,date}){
           '📌 Última vez ('+fmtDate(last.date)+'): ',
           React.createElement('span',{className:'text-accent'},lastTxt),
           ' ',
-          React.createElement('button',{className:'text-xs text-accent',style:{textDecoration:'underline'},onClick:()=>useLast(ex,last)},'Usar esta carga'),
+          React.createElement('button',{className:'text-xs text-accent link-btn',onClick:()=>useLast(ex,last)},'Usar esta carga'),
           hitTop && React.createElement('div',{className:'text-green'},'💡 Llegaste al tope de reps: prueba subir ~2.5 kg')
         ),
         !last && React.createElement('div',{className:'text-xs text-muted',style:{margin:'4px 0 6px'}},'Sin registro previo'),
@@ -697,7 +817,7 @@ function ExpandableRoutine({routine,lifts,onUpdateLifts,days,date}){
                 React.createElement('td',null,React.createElement('input',{type:'number',inputMode:'decimal',value:st.w||'',placeholder:pv.w?String(pv.w):'',onChange:e=>updateSet(ex,i,'w',e.target.value)})),
                 React.createElement('td',null,React.createElement('input',{type:'number',inputMode:'numeric',value:st.r||'',placeholder:pv.r?String(pv.r):'',onChange:e=>updateSet(ex,i,'r',e.target.value)})),
                 React.createElement('td',null,React.createElement('input',{type:'number',inputMode:'numeric',value:st.rir===0?'0':st.rir||'',onChange:e=>updateSet(ex,i,'rir',e.target.value)})),
-                React.createElement('td',null,i>0&&React.createElement('button',{className:'text-xs text-accent',onClick:()=>copyPrevSet(ex,i)},'⬆'))
+                React.createElement('td',null,i>0&&React.createElement('button',{className:'text-xs text-accent copy-btn','aria-label':'Copiar set anterior',onClick:()=>copyPrevSet(ex,i)},'⬆'))
               );
             })
           )
@@ -709,16 +829,18 @@ function ExpandableRoutine({routine,lifts,onUpdateLifts,days,date}){
 
 // ─── Macro Summary Card ────────────────────────────────────
 function MacroSummaryCard({meals,block,date}){
-  const totalKcal = meals.reduce((s,m)=>s+(m.kcal||0),0);
-  const totalP = meals.reduce((s,m)=>s+(m.protein||0),0);
-  const totalC = meals.reduce((s,m)=>s+(m.carbs||0),0);
-  const totalF = meals.reduce((s,m)=>s+(m.fat||0),0);
+  const totalKcal = meals.reduce((s,m)=>s+(Number(m.kcal)||0),0);
+  const totalP = meals.reduce((s,m)=>s+(Number(m.protein)||0),0);
+  const totalC = meals.reduce((s,m)=>s+(Number(m.carbs)||0),0);
+  const totalF = meals.reduce((s,m)=>s+(Number(m.fat)||0),0);
 
   const targetKcal = getTargetKcal(block,date);
-  const targetP = block?block.protein:180;
-  const targetC = block?block.carbs:200;
-  const targetF = block?block.fat:67;
   const flex = isFlexDay(date);
+  // En día flex las kcal extra se reparten en carbos (60%) y grasa (40%); la proteína se mantiene
+  const extra = (flex && block) ? Math.max(0, targetKcal - (block.kcal||targetKcal)) : 0;
+  const targetP = block?block.protein:180;
+  const targetC = (block?block.carbs:200) + Math.round(extra*0.6/4);
+  const targetF = (block?block.fat:67) + Math.round(extra*0.4/9);
 
   return React.createElement('div',{className:'card'},
     React.createElement('div',{className:'card-title'},
@@ -729,7 +851,7 @@ function MacroSummaryCard({meals,block,date}){
       React.createElement(ProgressRing,{pct:pct(totalKcal,targetKcal),size:64,stroke:5,color:totalKcal>targetKcal*1.05?'var(--red)':'var(--accent)'}),
       React.createElement('div',{style:{textAlign:'center'}},
         React.createElement('div',{className:'text-xs text-muted'},'Calorías'),
-        React.createElement('div',{className:'fw-bold',style:{fontSize:20}},totalKcal),
+        React.createElement('div',{className:'fw-bold',style:{fontSize:20}},Math.round(totalKcal)),
         React.createElement('div',{className:'text-xs text-muted'},'/ ',targetKcal,' kcal')
       )
     ),
@@ -742,7 +864,7 @@ function MacroSummaryCard({meals,block,date}){
         React.createElement('div',{className:'flex-1',style:{margin:'0 8px'}},
           React.createElement(MacroBar,{current:val,target:tgt,color:col})
         ),
-        React.createElement('span',{className:'text-sm'},val,'/',tgt,'g')
+        React.createElement('span',{className:'text-sm'},Math.round(val),'/',tgt,'g')
       );
     })
   );
@@ -764,11 +886,19 @@ const W_ALIASES = {
   waterPct:['waterpct','water','bodywater','bodywaterpct','agua','aguacorporal']
 };
 
-function toNum(v){
+function toNum(v,dotThousands){
   if(v==null || v==='') return null;
   if(typeof v==='number') return isFinite(v)?v:null;
-  const m = String(v).replace(',','.').match(/-?\d+(\.\d+)?/);
-  return m ? Number(m[0]) : null;
+  const m0 = String(v).match(/-?\d[\d.,]*/);
+  if(!m0) return null;
+  let n = m0[0].replace(/[.,]$/,'');
+  if(/^-?[1-9]\d{0,2}(,\d{3})+(\.\d+)?$/.test(n)) n = n.replace(/,/g,'');                 // 1,200 / 1,200.5 → miles
+  else if(/^-?\d{1,3}(\.\d{3})+,\d+$/.test(n)) n = n.replace(/\./g,'').replace(',','.'); // 1.234,5
+  else if(dotThousands && /^-?[1-9]\d{0,2}(\.\d{3})+$/.test(n)) n = n.replace(/\./g,'');  // 1.200 kcal
+  else if(/^-?\d+,\d+$/.test(n)) n = n.replace(',','.');                              // 79,8 → decimal
+  n = n.replace(/,/g,'');
+  const x = parseFloat(n);
+  return isFinite(x) ? x : null;
 }
 
 function extractJSON(text){
@@ -809,13 +939,16 @@ function normalizeScale(json){
 }
 
 function WeightCard({weight,onUpdate,apiKey}){
+  const busy = useRef(false);
   const [loading,setLoading] = useState(false);
   const [notice,setNotice] = useState('');
   const fileRef = useRef();
 
   async function handlePhoto(e){
     const files = Array.from(e.target.files||[]);
-    if(!files.length||!apiKey) return;
+    if(fileRef.current) fileRef.current.value='';
+    if(!files.length||!apiKey||busy.current) return;
+    busy.current = true;
     setLoading(true); setNotice('');
     const acc = {}; const badAll = []; const errs = [];
     for(const file of files){
@@ -837,7 +970,7 @@ function WeightCard({weight,onUpdate,apiKey}){
     }
     const read = Object.keys(acc);
     if(read.length){
-      onUpdate({...weight,...acc,time:weight.time||new Date().toISOString()});
+      onUpdate(prev=>({...prev,...acc,time:prev.time||new Date().toISOString()}));
     }
     const missing = Object.keys(W_FIELDS).filter(k=>acc[k]===undefined);
     let msg = read.length
@@ -847,14 +980,14 @@ function WeightCard({weight,onUpdate,apiKey}){
     if(badAll.length) msg += ' Descarté por fuera de rango: '+[...new Set(badAll)].map(k=>W_FIELDS[k].label).join(', ')+'.';
     if(errs.length) msg += ' Error: '+errs[0];
     setNotice(msg);
+    busy.current = false;
     setLoading(false);
-    if(fileRef.current) fileRef.current.value='';
   }
 
   const field = (k,step)=>React.createElement('div',{key:k},
     React.createElement('div',{className:'text-xs text-muted'},W_FIELDS[k].label+(W_FIELDS[k].unit?' ('+W_FIELDS[k].unit+')':'')),
     React.createElement('input',{type:'number',inputMode:'decimal',step,value:weight[k]==null?'':weight[k],
-      onChange:e=>onUpdate({...weight,[k]:e.target.value===''?null:Number(e.target.value)})})
+      onChange:e=>{const v=e.target.value; onUpdate(prev=>({...prev,[k]:v===''?null:Number(v)}));}})
   );
 
   return React.createElement('div',{className:'card'},
@@ -877,26 +1010,51 @@ function WeightCard({weight,onUpdate,apiKey}){
 }
 
 // ─── Meals Card ────────────────────────────────────────────
-function MealsCard({meals,onUpdate,apiKey,frequent,onUpdateFrequent}){
-  const [showAdd,setShowAdd] = useState(false);
-  const [editMeal,setEditMeal] = useState(null);
+function nowHM(){ return new Date().toTimeString().slice(0,5); }
+function r1(v){ return Math.round((Number(v)||0)*10)/10; }
+
+function MealsCard({meals,onUpdate,apiKey,frequent,onUpdateFrequent,date,notify}){
+  const [panel,setPanel] = useState(false);        // panel de agregar abierto
+  const [editMeal,setEditMeal] = useState(null);   // comida en edición (nueva o existente)
   const [aiText,setAiText] = useState('');
   const [aiLoading,setAiLoading] = useState(false);
+  const [notice,setNotice] = useState('');
+  const [filter,setFilter] = useState('');
+  const [editFreq,setEditFreq] = useState(false);
+  const busy = useRef(false);
   const fileRef = useRef();
 
-  const [filter,setFilter] = useState('');
-  const FREQUENT = (frequent&&frequent.length) ? frequent : DEFAULT_FREQUENT;
-  const shownFreq = FREQUENT.filter(f=>!filter.trim() || String(f.name||'').toLowerCase().includes(filter.trim().toLowerCase()));
+  const FREQUENT = Array.isArray(frequent) ? frequent : DEFAULT_FREQUENT;
+  const q = filter.trim().toLowerCase();
+  const shownFreq = FREQUENT.filter(f=>!q || String(f.name||'').toLowerCase().includes(q));
+
+  function flash(msg){ setNotice(msg); }
+
+  function addMeals(list,fromAI){
+    onUpdate(prev=>[...prev,...list]);
+    const msg = '✓ Agregado: '+list.map(m=>m.name).join(', ');
+    flash(msg);
+    // Si la IA tardó y cambiaste de día, el aviso global indica a qué día se agregó
+    if(fromAI && notify) notify(msg.slice(0,60)+(date?' ('+fmtDate(date)+')':''));
+  }
+
+  function deleteFrequent(f){
+    if(!onUpdateFrequent) return;
+    if(!window.confirm('¿Quitar "'+f.name+'" de frecuentes?')) return;
+    onUpdateFrequent(prev=>(Array.isArray(prev)?prev:DEFAULT_FREQUENT).filter(x=>x!==f && !(x.id && x.id===f.id)));
+  }
 
   function addFrequent(f){
-    const newMeal = {...f,id:uid(),source:'frecuente',time:new Date().toTimeString().slice(0,5)};
-    onUpdate([...meals,newMeal]);
+    addMeals([{name:String(f.name||'Comida'),kcal:Math.round(Number(f.kcal)||0),protein:r1(f.protein),carbs:r1(f.carbs),fat:r1(f.fat),id:uid(),source:'frecuente',time:nowHM()}]);
   }
 
   function saveAsFrequent(m){
     if(!onUpdateFrequent) return;
-    if(FREQUENT.some(f=>String(f.name).toLowerCase()===String(m.name).toLowerCase())){ alert('Ya está en frecuentes'); return; }
-    onUpdateFrequent([{id:'ff'+uid(),name:m.name,kcal:m.kcal||0,protein:m.protein||0,carbs:m.carbs||0,fat:m.fat||0},...FREQUENT]);
+    const exists = FREQUENT.some(f=>String(f.name).trim().toLowerCase()===String(m.name).trim().toLowerCase());
+    if(exists){ flash('"'+m.name+'" ya está en frecuentes'); return; }
+    const item = {id:'ff'+uid(),name:m.name,kcal:m.kcal||0,protein:m.protein||0,carbs:m.carbs||0,fat:m.fat||0};
+    onUpdateFrequent(prev=>[item,...(Array.isArray(prev)?prev:DEFAULT_FREQUENT)]);
+    flash('⭐ Guardado en frecuentes: '+m.name);
   }
 
   function parseMeals(resp,source){
@@ -904,122 +1062,135 @@ function MealsCard({meals,onUpdate,apiKey,frequent,onUpdateFrequent}){
     if(arr && !Array.isArray(arr)) arr = Array.isArray(arr.meals)?arr.meals : Array.isArray(arr.items)?arr.items : (arr.name?[arr]:null);
     if(!Array.isArray(arr)) throw new Error('No pude interpretar la respuesta de la IA, intenta de nuevo');
     const out = arr.filter(m=>m&&m.name).map(m=>{
-      const p = Math.round((toNum(m.protein)||0)*10)/10, c = Math.round((toNum(m.carbs)||0)*10)/10, f = Math.round((toNum(m.fat)||0)*10)/10;
-      let k = Math.round(toNum(m.kcal)||0);
+      const p = r1(toNum(m.protein)), c = r1(toNum(m.carbs)), f = r1(toNum(m.fat));
+      let k = Math.round(toNum(m.kcal,true)||0);
       if(!k) k = Math.round(4*p+4*c+9*f);
-      return {id:uid(),name:String(m.name),kcal:k,protein:p,carbs:c,fat:f,source,time:new Date().toTimeString().slice(0,5)};
+      return {id:uid(),name:String(m.name),kcal:k,protein:p,carbs:c,fat:f,source,time:nowHM()};
     });
     if(!out.length) throw new Error('La IA no devolvió alimentos');
     return out;
   }
 
-  function removeMeal(id){
-    onUpdate(meals.filter(m=>m.id!==id));
+  function removeMeal(m){
+    if(!window.confirm('¿Borrar "'+m.name+'"?')) return;
+    onUpdate(prev=>prev.filter(x=>x.id!==m.id));
+    if(editMeal && editMeal.id===m.id) setEditMeal(null);
   }
 
   function saveMeal(m){
-    if(editMeal){
-      onUpdate(meals.map(x=>x.id===editMeal.id?{...editMeal,...m}:x));
+    const clean = {name:m.name.trim(),kcal:Math.round(Number(m.kcal)||0),protein:r1(m.protein),carbs:r1(m.carbs),fat:r1(m.fat)};
+    if(!clean.kcal) clean.kcal = Math.round(4*clean.protein+4*clean.carbs+9*clean.fat);
+    if(editMeal && editMeal.id){
+      const id = editMeal.id;
+      onUpdate(prev=>prev.map(x=>x.id===id?{...x,...clean}:x));
+      flash('✓ Actualizado: '+clean.name);
+      setPanel(false);
     }else{
-      onUpdate([...meals,{id:uid(),...m,time:new Date().toTimeString().slice(0,5)}]);
+      addMeals([{id:uid(),...clean,source:'manual',time:nowHM()}]);
     }
     setEditMeal(null);
-    setShowAdd(false);
   }
 
+  const MACRO_PROMPT = 'Soy paciente post manga gástrica (porciones pequeñas). Estima calorías y macros de forma realista para lo que se describe, separando cada alimento. Usa las cantidades indicadas; si no hay cantidad, asume una porción típica post-bariátrica. Responde SOLO un JSON array, sin texto extra: [{"name":"alimento y cantidad","kcal":number,"protein":number,"carbs":number,"fat":number}]';
+
   async function analyzeText(){
-    if(!aiText.trim()||!apiKey) return;
-    setAiLoading(true);
+    const txt = aiText.trim();
+    if(!txt||!apiKey||busy.current) return;
+    busy.current = true;
+    setAiLoading(true); setNotice('');
     try{
-      const resp = await callClaude(apiKey,[{
-        role:'user',
-        content:'Soy paciente post manga gástrica. Analiza esta comida y dame los macros. Responde SOLO JSON array: [{"name":"...","kcal":number,"protein":number,"carbs":number,"fat":number}]. Comida: '+aiText
-      }]);
-      const newMeals = parseMeals(resp,'ai-texto');
-      onUpdate([...meals,...newMeals]);
+      const resp = await callClaude(apiKey,[{role:'user',content:MACRO_PROMPT+'\n\nComida: '+txt}]);
+      addMeals(parseMeals(resp,'ai-texto'),true);
       setAiText('');
     }catch(err){
-      alert('Error AI: '+err.message);
+      flash('⚠️ '+err.message);
     }
+    busy.current = false;
     setAiLoading(false);
   }
 
   async function analyzePhoto(e){
     const file = e.target.files?.[0];
-    if(!file||!apiKey) return;
-    setAiLoading(true);
+    if(fileRef.current) fileRef.current.value='';
+    if(!file||!apiKey||busy.current) return;
+    busy.current = true;
+    setAiLoading(true); setNotice('');
     try{
       const {b64,mediaType} = await prepareImage(file);
       const resp = await callClaude(apiKey,[{
         role:'user',
         content:[
           {type:'image',source:{type:'base64',media_type:mediaType,data:b64}},
-          {type:'text',text:'Soy paciente post manga gástrica. Identifica los alimentos en esta foto y estima macros. Responde SOLO JSON array: [{"name":"...","kcal":number,"protein":number,"carbs":number,"fat":number}]'}
+          {type:'text',text:MACRO_PROMPT+'\n\nIdentifica los alimentos de la foto y estima la porción visible.'}
         ]
       }]);
-      const newMeals = parseMeals(resp,'ai-foto');
-      onUpdate([...meals,...newMeals]);
+      addMeals(parseMeals(resp,'ai-foto'),true);
     }catch(err){
-      alert('Error AI foto: '+err.message);
+      flash('⚠️ '+err.message);
     }
+    busy.current = false;
     setAiLoading(false);
-    if(fileRef.current) fileRef.current.value='';
   }
 
   return React.createElement('div',{className:'card'},
     React.createElement('div',{className:'card-title',style:{justifyContent:'space-between'}},
       React.createElement('span',null,'🍽️ Comidas (',meals.length,')'),
-      React.createElement('button',{className:'topbar-btn',onClick:()=>{setEditMeal(null);setShowAdd(!showAdd);}},showAdd?'✕':'+')
+      React.createElement('button',{className:'topbar-btn',onClick:()=>{setEditMeal(null);setPanel(!panel);setNotice('');}},panel?'✕ Cerrar':'+ Agregar')
     ),
 
-    // Meal list
     meals.map(m=>
       React.createElement('div',{key:m.id,className:'meal-item'},
-        React.createElement('div',{style:{flex:1},onClick:()=>{setEditMeal(m);setShowAdd(true);}},
+        React.createElement('div',{style:{flex:1,cursor:'pointer'},onClick:()=>{setEditMeal(m);setPanel(true);setNotice('');}},
           React.createElement('div',{className:'meal-name'},m.name),
-          React.createElement('div',{className:'meal-macros'},'P:',m.protein||0,'g C:',m.carbs||0,'g F:',m.fat||0,'g'),
-          m.source && React.createElement('div',{className:'text-xs text-muted'},m.source,' · ',fmtTime(m.time))
+          React.createElement('div',{className:'meal-macros'},'P:',r1(m.protein),'g C:',r1(m.carbs),'g G:',r1(m.fat),'g'),
+          m.source && React.createElement('div',{className:'text-xs text-muted'},m.source,m.time?' · '+fmtTime(m.time):'')
         ),
-        React.createElement('div',{style:{display:'flex',alignItems:'center',gap:8}},
-          React.createElement('span',{className:'meal-kcal'},m.kcal||0),
-          onUpdateFrequent && React.createElement('button',{className:'text-sm',title:'Guardar en frecuentes',onClick:(e)=>{e.stopPropagation();saveAsFrequent(m);}},'⭐'),
-          React.createElement('button',{className:'text-red text-sm',onClick:(e)=>{e.stopPropagation();removeMeal(m.id);}},'✕')
+        React.createElement('div',{style:{display:'flex',alignItems:'center',gap:2}},
+          React.createElement('span',{className:'meal-kcal',style:{marginRight:4}},Math.round(m.kcal||0)),
+          onUpdateFrequent && React.createElement('button',{className:'icon-btn',title:'Guardar en frecuentes','aria-label':'Guardar en frecuentes',onClick:(e)=>{e.stopPropagation();saveAsFrequent(m);}},'⭐'),
+          React.createElement('button',{className:'icon-btn text-red','aria-label':'Borrar',onClick:(e)=>{e.stopPropagation();removeMeal(m);}},'✕')
         )
       )
     ),
 
-    meals.length===0 && React.createElement('div',{className:'empty-state'},
+    meals.length===0 && !panel && React.createElement('div',{className:'empty-state'},
       React.createElement('div',{className:'icon'},'🍽️'),
-      React.createElement('div',null,'Sin comidas registradas')
+      React.createElement('div',null,'Sin comidas registradas — toca "+ Agregar"')
     ),
 
-    // Add panel
-    showAdd && React.createElement('div',{style:{marginTop:12,paddingTop:12,borderTop:'1px solid var(--border)'}},
-      // Frequent foods
-      React.createElement('div',{className:'text-xs text-muted mb-8'},'Frecuentes (',FREQUENT.length,')'),
-      React.createElement('input',{className:'mb-8',value:filter,onChange:e=>setFilter(e.target.value),placeholder:'Buscar en frecuentes...'}),
-      React.createElement('div',{style:{display:'flex',flexWrap:'wrap',marginBottom:12,maxHeight:180,overflowY:'auto'}},
-        shownFreq.map((f,i)=>
-          React.createElement('button',{key:i,className:'chip',onClick:()=>addFrequent(f)},f.name,' ',React.createElement('span',{className:'text-muted'},f.kcal))
-        )
-      ),
+    notice && React.createElement('div',{className:'text-xs',style:{marginTop:8,color:notice.startsWith('⚠️')?'var(--red)':'var(--green)'}},notice),
 
-      // AI text
-      React.createElement('div',{className:'text-xs text-muted mb-8'},'Describir comida (AI)'),
+    // Edición / alta manual: se muestra sola para que no se pierda en la pantalla
+    panel && editMeal && React.createElement(MealForm,{key:editMeal.id||'new',meal:editMeal,onSave:saveMeal,onCancel:()=>{ if(editMeal && editMeal.id) setPanel(false); setEditMeal(null); }}),
+
+    panel && !editMeal && React.createElement('div',{style:{marginTop:12,paddingTop:12,borderTop:'1px solid var(--border)'}},
+      !apiKey && React.createElement('div',{className:'text-xs text-muted mb-8'},'ℹ️ Para usar la IA (texto/foto) agrega tu API key en la pestaña Datos.'),
+
+      React.createElement('div',{className:'text-xs text-muted mb-8'},'Describir comida (IA)'),
       React.createElement('div',{className:'flex-row mb-8'},
-        React.createElement('input',{className:'flex-1',value:aiText,onChange:e=>setAiText(e.target.value),placeholder:'Ej: 2 tacos de asada con tortilla de maíz'}),
+        React.createElement('input',{className:'flex-1',value:aiText,onChange:e=>setAiText(e.target.value),onKeyDown:e=>{if(e.key==='Enter'){e.preventDefault();analyzeText();}},placeholder:'Ej: 2 tacos de asada con tortilla de maíz'}),
         React.createElement('button',{className:'btn btn-primary',onClick:analyzeText,disabled:aiLoading||!aiText.trim()||!apiKey},aiLoading?'...':'🔍')
       ),
 
-      // AI photo
       React.createElement('input',{ref:fileRef,type:'file',accept:'image/*',style:{display:'none'},onChange:analyzePhoto}),
-      React.createElement('button',{className:'btn btn-secondary w-full mt-8',onClick:()=>fileRef.current?.click(),disabled:aiLoading||!apiKey},
-        aiLoading?'Analizando foto...':'📷 Foto de comida'
+      React.createElement('div',{className:'flex-row mb-8'},
+        React.createElement('button',{className:'btn btn-secondary flex-1',onClick:()=>fileRef.current?.click(),disabled:aiLoading||!apiKey},
+          aiLoading?'Analizando...':'📷 Foto de comida'
+        ),
+        React.createElement('button',{className:'btn btn-secondary flex-1',onClick:()=>{setEditMeal({name:'',kcal:'',protein:'',carbs:'',fat:''});setNotice('');}},'✏️ Manual')
       ),
 
-      // Manual add
-      editMeal ? React.createElement(MealForm,{meal:editMeal,onSave:saveMeal,onCancel:()=>{setEditMeal(null);setShowAdd(false);}})
-               : React.createElement('button',{className:'btn btn-secondary w-full mt-8',onClick:()=>setEditMeal({name:'',kcal:0,protein:0,carbs:0,fat:0,source:'manual'})},'✏️ Agregar manual')
+      React.createElement('div',{className:'flex-row mb-8',style:{marginTop:8,justifyContent:'space-between'}},
+        React.createElement('span',{className:'text-xs text-muted'},'Frecuentes (',FREQUENT.length,') — ',editFreq?'toca ✕ para quitar':'toca para agregar'),
+        onUpdateFrequent && React.createElement('button',{className:'text-xs text-accent',style:{padding:'6px 4px'},onClick:()=>setEditFreq(!editFreq)},editFreq?'Listo':'Editar')
+      ),
+      React.createElement('input',{className:'mb-8',value:filter,onChange:e=>setFilter(e.target.value),placeholder:'Buscar en frecuentes...'}),
+      React.createElement('div',{style:{display:'flex',flexWrap:'wrap',maxHeight:200,overflowY:'auto'}},
+        shownFreq.map((f,i)=>
+          React.createElement('button',{key:(f.id||'f')+'-'+i,className:'chip'+(editFreq?' chip-del':''),onClick:()=>editFreq?deleteFrequent(f):addFrequent(f)},editFreq?'✕ ':'',f.name,' ',React.createElement('span',{className:'text-muted'},Math.round(f.kcal||0)))
+        ),
+        shownFreq.length===0 && React.createElement('div',{className:'text-xs text-muted'},'Sin coincidencias')
+      )
     )
   );
 }
@@ -1031,36 +1202,43 @@ function fmtTime(t){
 }
 
 function MealForm({meal,onSave,onCancel}){
-  const [m,setM] = useState({name:meal.name||'',kcal:meal.kcal||0,protein:meal.protein||0,carbs:meal.carbs||0,fat:meal.fat||0,source:meal.source||'manual'});
+  const init = v => (v===null||v===undefined||v==='') ? '' : String(v);
+  const [m,setM] = useState({name:meal.name||'',kcal:init(meal.kcal),protein:init(meal.protein),carbs:init(meal.carbs),fat:init(meal.fat)});
+  const P=toNum(m.protein)||0, C=toNum(m.carbs)||0, F=toNum(m.fat)||0;
+  const calc = Math.round(4*P+4*C+9*F);
+  const kc = toNum(m.kcal,true);
+  const canSave = m.name.trim() && ((kc!=null && kc>0) || calc>0);
+  const numField = (k,label)=>React.createElement('div',null,
+    React.createElement('div',{className:'text-xs text-muted'},label),
+    React.createElement('input',{type:'text',inputMode:'decimal',value:m[k],onChange:e=>setM({...m,[k]:e.target.value.replace(/[^0-9.,]/g,'')})})
+  );
   return React.createElement('div',{className:'mt-12',style:{padding:12,background:'var(--surface2)',borderRadius:8}},
-    React.createElement('div',{className:'text-xs text-muted mb-8'},'Editar comida'),
-    React.createElement('input',{className:'mb-8',value:m.name,onChange:e=>setM({...m,name:e.target.value}),placeholder:'Nombre'}),
+    React.createElement('div',{className:'text-xs text-muted mb-8'},meal.id?'Editar comida':'Nueva comida'),
+    React.createElement('input',{className:'mb-8',value:m.name,onChange:e=>setM({...m,name:e.target.value}),placeholder:'Nombre (ej. Pechuga con arroz)'}),
     React.createElement('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}},
-      React.createElement('div',null,React.createElement('div',{className:'text-xs text-muted'},'Kcal'),React.createElement('input',{type:'number',value:m.kcal||'',onChange:e=>setM({...m,kcal:Number(e.target.value)||0})})),
-      React.createElement('div',null,React.createElement('div',{className:'text-xs text-muted'},'Proteína'),React.createElement('input',{type:'number',value:m.protein||'',onChange:e=>setM({...m,protein:Number(e.target.value)||0})})),
-      React.createElement('div',null,React.createElement('div',{className:'text-xs text-muted'},'Carbos'),React.createElement('input',{type:'number',value:m.carbs||'',onChange:e=>setM({...m,carbs:Number(e.target.value)||0})})),
-      React.createElement('div',null,React.createElement('div',{className:'text-xs text-muted'},'Grasa'),React.createElement('input',{type:'number',value:m.fat||'',onChange:e=>setM({...m,fat:Number(e.target.value)||0})}))
+      numField('kcal','Kcal'),
+      numField('protein','Proteína (g)'),
+      numField('carbs','Carbos (g)'),
+      numField('fat','Grasa (g)')
     ),
+    (kc==null||kc===0) && calc>0 && React.createElement('div',{className:'text-xs text-muted',style:{marginTop:6}},'Sin kcal: se calcularán con los macros = ',calc,' kcal'),
     React.createElement('div',{className:'flex-row mt-12'},
       React.createElement('button',{className:'btn btn-secondary flex-1',onClick:onCancel},'Cancelar'),
-      React.createElement('button',{className:'btn btn-primary flex-1',onClick:()=>onSave(m),disabled:!m.name.trim()},'Guardar')
-    )
+      React.createElement('button',{className:'btn btn-primary flex-1',onClick:()=>onSave({name:m.name,kcal:kc||0,protein:P,carbs:C,fat:F}),disabled:!canSave},'Guardar')
+    ),
+    !canSave && React.createElement('div',{className:'text-xs text-muted',style:{marginTop:6}},'Escribe un nombre y las kcal (o los macros) para poder guardar.')
   );
 }
 
 // ─── Supplements Card ──────────────────────────────────────
 function SuppsCard({supps,onUpdate}){
-  function toggle(key){
-    onUpdate({...supps,[key]:!supps[key]});
-  }
   const icons = {proteina:'🥛',creatina:'💊',multivitaminico:'💊',omega3:'🐟'};
   const labels = {proteina:'Proteína',creatina:'Creatina',multivitaminico:'Multivit.',omega3:'Omega 3'};
-
   return React.createElement('div',{className:'card'},
     React.createElement('div',{className:'card-title'},'💊 Suplementos'),
     React.createElement('div',{className:'supp-grid'},
       SUPP_LIST.map(s=>
-        React.createElement('div',{key:s,className:'supp-item',onClick:()=>toggle(s)},
+        React.createElement('div',{key:s,className:'supp-item',onClick:()=>onUpdate(prev=>({...prev,[s]:!prev[s]}))},
           React.createElement('div',{className:'supp-check'+(supps[s]?' done':'')},supps[s]?'✓':''),
           React.createElement('span',null,icons[s]||'💊',' ',labels[s]||s)
         )
@@ -1078,27 +1256,33 @@ function NoteCard({note,onChange}){
 }
 
 // ─── TAB: Día ──────────────────────────────────────────────
-function TabDia({data,setData,date,setDate}){
-  const {block,blockIdx,dayInBlock} = getCurrentBlock(data.plan, date);
+function TabDia({data,update,date,setDate,notify}){
+  const {block} = getCurrentBlock(data.plan, date);
   const day = data.days[date] || emptyDay();
-  const type = getScheduleType(date);
-  const routine = getRoutineForDate(date);
+  const type = day.typeOverride || getScheduleType(date);
+  const routine = routineFor(day,date);
+  const hasSimPerf = perfEntries(data).some(e=>e.dateISO===date && (e.type==='hyrox_sim'||e.type==='hyrox_race'));
+  function saveSim(){
+    update(prev=>{
+      const d = prev.days[date]||{};
+      if(!(d.hyroxSimMin>0)) return prev;
+      const p = prev.performance||{hyrox:[],secondary:[]};
+      if((p.hyrox||[]).some(e=>e.dateISO===date && e.type==='hyrox_sim')) return prev;
+      const entry = {id:'p'+uid(),type:'hyrox_sim',durationMin:d.hyroxSimMin,hrAvg:null,hrMax:null,rpe:d.hyroxSimRpe||null,notes:'Desde checklist',segments:[],dateISO:date};
+      return {...prev,performance:{...p,hyrox:[...(p.hyrox||[]),entry]}};
+    });
+    notify && notify('Simulación guardada en Rendimiento');
+  }
 
+  // Todas las escrituras parten del estado MÁS RECIENTE (evita perder cambios con respuestas lentas de la IA)
   function updateDay(patch){
-    const newDay = {...day,...patch};
-    const newDays = {...data.days,[date]:newDay};
-    const newData = {...data,days:newDays};
-    setData(newData);
-    saveData(newData);
+    update(prev=>{
+      const cur = (prev.days && prev.days[date]) || emptyDay();
+      const p = typeof patch==='function' ? patch(cur) : patch;
+      return {...prev,days:{...prev.days,[date]:{...cur,...p}}};
+    });
   }
-
-  function updateLifts(lifts){
-    updateDay({lifts});
-  }
-
-  function updateMeals(meals){
-    updateDay({meals});
-  }
+  const field = (key,fallback) => val => updateDay(cur=>({[key]: typeof val==='function' ? val(cur[key]||fallback) : val}));
 
   return React.createElement(Fragment,null,
     React.createElement(DaySelector,{date,onChange:setDate}),
@@ -1109,22 +1293,23 @@ function TabDia({data,setData,date,setDate}){
       '😴 Descanso'
     ),
     React.createElement(ErrorBoundary,{name:'Checklist'},
-      React.createElement(ChecklistCard,{day,date,onUpdate:updateDay,routine})
+      React.createElement(ChecklistCard,{day,date,type,routine,onUpdate:updateDay,hasSimPerf,onSaveSim:saveSim})
     ),
     type==='fuerza' && routine && React.createElement(ErrorBoundary,{name:'Rutina'},
-      React.createElement(ExpandableRoutine,{routine,lifts:day.lifts||{},onUpdateLifts:updateLifts,days:data.days||{},date})
+      React.createElement(ExpandableRoutine,{routine,lifts:day.lifts||{},onUpdateLifts:field('lifts',{}),days:data.days||{},date})
     ),
     React.createElement(ErrorBoundary,{name:'Macros'},
       React.createElement(MacroSummaryCard,{meals:day.meals||[],block,date})
     ),
     React.createElement(ErrorBoundary,{name:'Comidas'},
-      React.createElement(MealsCard,{meals:day.meals||[],onUpdate:updateMeals,apiKey:data.apiKey,frequent:data.frequentFoods,onUpdateFrequent:ff=>{const nd={...data,frequentFoods:ff};setData(nd);saveData(nd);}})
+      React.createElement(MealsCard,{key:date,date,notify,meals:day.meals||[],onUpdate:field('meals',[]),apiKey:data.apiKey,frequent:data.frequentFoods,
+        onUpdateFrequent:ff=>update(prev=>({...prev,frequentFoods: typeof ff==='function'?ff(prev.frequentFoods):ff}))})
     ),
     React.createElement(ErrorBoundary,{name:'Peso'},
-      React.createElement(WeightCard,{weight:day.weight||{},onUpdate:w=>updateDay({weight:w}),apiKey:data.apiKey})
+      React.createElement(WeightCard,{key:date,weight:day.weight||{},onUpdate:field('weight',{}),apiKey:data.apiKey})
     ),
     React.createElement(ErrorBoundary,{name:'Supps'},
-      React.createElement(SuppsCard,{supps:day.supps||{},onUpdate:s=>updateDay({supps:s})})
+      React.createElement(SuppsCard,{supps:day.supps||{},onUpdate:field('supps',{})})
     ),
     React.createElement(ErrorBoundary,{name:'Nota'},
       React.createElement(NoteCard,{note:day.note,onChange:n=>updateDay({note:n})})
@@ -1158,41 +1343,47 @@ function fmtDur(min){
   return m+' min'+(s?' '+s+' s':'');
 }
 
-function PerfForm({data,setData}){
+function PerfForm({data,update}){
   const blank = ()=>({dateISO:todayStr(),type:'hyrox_sim',min:'',sec:'',hrAvg:'',hrMax:'',rpe:null,notes:'',distanceKm:'',kcal:''});
   const [form,setForm] = useState(blank);
   const [watchLoading,setWatchLoading] = useState(false);
   const [notice,setNotice] = useState('');
   const fileRef = useRef();
 
-  const durationMin = (Number(form.min)||0) + (Number(form.sec)||0)/60;
+  const busy = useRef(false);
+  const durationMin = (toNum(form.min)||0) + (toNum(form.sec)||0)/60;
+  const validDate = /^\d{4}-\d{2}-\d{2}$/.test(form.dateISO||'');
 
   function save(){
     const entry = {
       id:'p'+uid(),
       type:form.type,
       durationMin: Math.round(durationMin*100)/100,
-      hrAvg: form.hrAvg===''?null:Number(form.hrAvg),
-      hrMax: form.hrMax===''?null:Number(form.hrMax),
+      hrAvg: form.hrAvg===''?null:toNum(form.hrAvg),
+      hrMax: form.hrMax===''?null:toNum(form.hrMax),
       rpe: form.rpe,
       notes: form.notes||'',
       segments: [],
       dateISO: form.dateISO
     };
-    if(form.distanceKm!=='') entry.distanceKm = Number(form.distanceKm);
-    if(form.kcal!=='') entry.kcal = Number(form.kcal);
-    const perf = {hyrox:[...(data.performance?.hyrox||[])],secondary:[...(data.performance?.secondary||[])]};
-    (form.type==='hyrox_sim'||form.type==='hyrox_race' ? perf.hyrox : perf.secondary).push(entry);
-    const newData = {...data,performance:perf};
-    setData(newData);
-    saveData(newData);
+    if(!validDate || !(durationMin>0)) return;
+    if(form.distanceKm!=='' && toNum(form.distanceKm)!=null) entry.distanceKm = toNum(form.distanceKm);
+    if(form.kcal!=='' && toNum(form.kcal)!=null) entry.kcal = toNum(form.kcal);
+    const isHyrox = form.type==='hyrox_sim'||form.type==='hyrox_race';
+    update(prev=>{
+      const perf = {hyrox:[...(prev.performance?.hyrox||[])],secondary:[...(prev.performance?.secondary||[])]};
+      (isHyrox ? perf.hyrox : perf.secondary).push(entry);
+      return {...prev,performance:perf};
+    });
     setForm(blank());
     setNotice('✓ Registro guardado');
   }
 
   async function parseWatch(e){
     const files = Array.from(e.target.files||[]);
-    if(!files.length||!data.apiKey) return;
+    if(fileRef.current) fileRef.current.value='';
+    if(!files.length||!data.apiKey||busy.current) return;
+    busy.current = true;
     setWatchLoading(true); setNotice('');
     const got = {}; const errs = [];
     for(const file of files){
@@ -1211,7 +1402,7 @@ function PerfForm({data,setData}){
         if(mm!=null && mm>=0 && mm<=600 && got.min===undefined) got.min = Math.floor(mm);
         if(ss!=null && ss>=0 && ss<60 && got.sec===undefined) got.sec = Math.round(ss);
         else if(mm!=null && mm%1 && got.sec===undefined) got.sec = Math.round((mm%1)*60);
-        const hrA = toNum(j.hrAvg), hrM = toNum(j.hrMax), dk = toNum(j.distanceKm), kc = toNum(j.kcal);
+        const hrA = toNum(j.hrAvg), hrM = toNum(j.hrMax), dk = toNum(j.distanceKm), kc = toNum(j.kcal,true);
         if(hrA!=null && hrA>=40 && hrA<=230 && got.hrAvg===undefined) got.hrAvg = Math.round(hrA);
         if(hrM!=null && hrM>=40 && hrM<=230 && got.hrMax===undefined) got.hrMax = Math.round(hrM);
         if(dk!=null && dk>0 && dk<=200 && got.distanceKm===undefined) got.distanceKm = dk;
@@ -1225,8 +1416,8 @@ function PerfForm({data,setData}){
       (keys.length ? '✓ Leí: '+keys.map(k=>labels[k]+' '+got[k]).join(', ')+'. ' : 'No pude leer valores. ')
       + (errs.length ? 'Error: '+errs[0] : 'Revisa y corrige antes de guardar.')
     );
+    busy.current = false;
     setWatchLoading(false);
-    if(fileRef.current) fileRef.current.value='';
   }
 
   const num = (k,label,step)=>React.createElement('div',{className:'flex-1'},
@@ -1259,11 +1450,11 @@ function PerfForm({data,setData}){
     ),
     notice && React.createElement('div',{className:'text-xs text-muted mb-8',style:{lineHeight:1.5}},notice),
     React.createElement('textarea',{className:'mb-8',value:form.notes,onChange:e=>setForm({...form,notes:e.target.value}),placeholder:'Notas del entrenamiento...'}),
-    React.createElement('button',{className:'btn btn-primary w-full',onClick:save,disabled:!(durationMin>0)},'Guardar registro')
+    React.createElement('button',{className:'btn btn-primary w-full',onClick:save,disabled:!(durationMin>0)||!validDate},'Guardar registro')
   );
 }
 
-function PerfHistory({data}){
+function PerfHistory({data,onDelete}){
   const list = perfEntries(data);
   if(!list.length) return React.createElement('div',{className:'empty-state'},
     React.createElement('div',{className:'icon'},'🏋️'),
@@ -1283,7 +1474,10 @@ function PerfHistory({data}){
             React.createElement('div',{className:'fw-bold'},t.icon+' '+t.label),
             React.createElement('div',{className:'text-xs text-muted'},p.dateISO?fmtDate(p.dateISO):'')
           ),
-          React.createElement('div',{className:'text-accent fw-bold',style:{fontSize:16}},fmtDur(p.durationMin))
+          React.createElement('div',{style:{display:'flex',alignItems:'center',gap:4}},
+            React.createElement('div',{className:'text-accent fw-bold',style:{fontSize:16}},fmtDur(p.durationMin)),
+            onDelete && React.createElement('button',{className:'icon-btn text-red','aria-label':'Borrar registro',onClick:()=>onDelete(p)},'✕')
+          )
         ),
         bits.length>0 && React.createElement('div',{className:'text-xs text-muted mt-8'},bits.join(' · ')),
         p.notes && React.createElement('div',{className:'text-xs text-muted mt-8'},p.notes)
@@ -1292,10 +1486,13 @@ function PerfHistory({data}){
   );
 }
 
-function TabRendimiento({data,setData}){
+function TabRendimiento({data,update}){
   return React.createElement(Fragment,null,
-    React.createElement(ErrorBoundary,{name:'PerfForm'},React.createElement(PerfForm,{data,setData})),
-    React.createElement(ErrorBoundary,{name:'PerfHistory'},React.createElement(PerfHistory,{data}))
+    React.createElement(ErrorBoundary,{name:'PerfForm'},React.createElement(PerfForm,{data,update})),
+    React.createElement(ErrorBoundary,{name:'PerfHistory'},React.createElement(PerfHistory,{data,onDelete:p=>{
+      if(!window.confirm('¿Borrar '+((PERF_TYPES[p.type]||{}).label||'registro')+' del '+(p.dateISO?fmtDate(p.dateISO):'')+'?')) return;
+      update(prev=>({...prev,performance:{hyrox:(prev.performance?.hyrox||[]).filter(e=>e.id!==p.id),secondary:(prev.performance?.secondary||[]).filter(e=>e.id!==p.id)}}));
+    }}))
   );
 }
 
@@ -1319,7 +1516,7 @@ function SimpleChart({data:chartData,width,height,color,label,unit,yMin,yMax}){
   const path = pts.map((p,i)=>(i===0?'M':'L')+p.x.toFixed(1)+','+p.y.toFixed(1)).join(' ');
 
   // Y axis labels
-  const yLabels = [mn,mn+range/2,mx].map(v=>({v:v.toFixed(1),y:pad+h-((v-mn)/range)*h}));
+  const yLabels = [mn,mn+range/2,mx].map(v=>({v:(Math.abs(mx)>=100?Math.round(v).toString():v.toFixed(1)),y:pad+h-((v-mn)/range)*h}));
   // X axis labels (first, mid, last)
   const xIdxs = chartData.length<=5 ? chartData.map((_,i)=>i) : [0,Math.floor(chartData.length/2),chartData.length-1];
 
@@ -1332,11 +1529,11 @@ function SimpleChart({data:chartData,width,height,color,label,unit,yMin,yMax}){
       ),
       // Y labels
       yLabels.map((yl,i)=>
-        React.createElement('text',{key:'y'+i,x:pad-4,y:yl.y+4,fill:'var(--text2)',fontSize:9,textAnchor:'end'},yl.v)
+        React.createElement('text',{key:'y'+i,x:pad-4,y:yl.y+4,fill:'var(--text2)',fontSize:12,textAnchor:'end'},yl.v)
       ),
       // X labels
       xIdxs.map(idx=>
-        React.createElement('text',{key:'x'+idx,x:pts[idx].x,y:height-4,fill:'var(--text2)',fontSize:8,textAnchor:'middle'},
+        React.createElement('text',{key:'x'+idx,x:pts[idx].x,y:height-4,fill:'var(--text2)',fontSize:11,textAnchor:'middle'},
           chartData[idx].label
         )
       ),
@@ -1347,7 +1544,7 @@ function SimpleChart({data:chartData,width,height,color,label,unit,yMin,yMax}){
         React.createElement('circle',{key:i,cx:p.x,cy:p.y,r:3,fill:color})
       ),
       // Unit
-      React.createElement('text',{x:4,y:12,fill:'var(--text2)',fontSize:8},unit||'')
+      React.createElement('text',{x:4,y:12,fill:'var(--text2)',fontSize:11},unit||'')
     )
   );
 }
@@ -1358,21 +1555,30 @@ function sessionDone(data,dd){
   return perfEntries(data).some(e=>e.dateISO===dd);
 }
 
+// Sesiones planeadas vs. hechas entre dos fechas (no cuenta días antes del plan, ni hoy si aún no entrenas)
+function adherenceRange(data,from,to){
+  const today = todayStr();
+  const start = (data.plan && data.plan.startDate) || from;
+  let planned=0, done=0;
+  for(let dd=from; dd<=to; dd=dateAdd(dd,1)){
+    if(dd<start || dd>today) continue;
+    const isDone = sessionDone(data,dd);
+    if(dayType(data,dd)==='rest'){ continue; }
+    if(dd===today && !isDone) continue;
+    planned++;
+    if(isDone) done++;
+  }
+  return {planned,done};
+}
+
 function WeeklyAdherence({data}){
   // Last 4 weeks (días con sesión planeada vs. con sesión registrada: check del día o registro en Rendimiento)
   const today = todayStr();
   const weeks = [];
   for(let w=0;w<4;w++){
     const weekStart = dateAdd(today, -((isoWeekday(today)-1) + w*7));
-    let planned=0, done=0;
-    for(let d=0;d<7;d++){
-      const dd = dateAdd(weekStart,d);
-      if(dd>today) continue;
-      if(getScheduleType(dd)==='rest') continue;
-      planned++;
-      if(sessionDone(data,dd)) done++;
-    }
-    weeks.unshift({label:'S'+(w===0?'actual':'-'+w),planned,done});
+    const {planned,done} = adherenceRange(data,weekStart,dateAdd(weekStart,6));
+    weeks.unshift({label:w===0?'Esta sem.':'S-'+w,planned,done});
   }
 
   return React.createElement('div',{className:'card'},
@@ -1380,7 +1586,8 @@ function WeeklyAdherence({data}){
     React.createElement('div',{style:{display:'flex',justifyContent:'space-around'}},
       weeks.map((w,i)=>
         React.createElement('div',{key:i,style:{textAlign:'center'}},
-          React.createElement(ProgressRing,{pct:w.planned?pct(w.done,w.planned):0,size:50,stroke:4,color:pct(w.done,w.planned)>=80?'var(--green)':'var(--orange)'}),
+          w.planned ? React.createElement(ProgressRing,{pct:pct(w.done,w.planned),size:50,stroke:4,color:pct(w.done,w.planned)>=80?'var(--green)':'var(--orange)'})
+                    : React.createElement('div',{style:{width:50,height:50,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text2)'}},'—'),
           React.createElement('div',{className:'text-xs text-muted',style:{marginTop:4}},w.label),
           React.createElement('div',{className:'text-xs'},w.done,'/',w.planned)
         )
@@ -1398,9 +1605,10 @@ function TabProgreso({data}){
   const muscleData = sorted.filter(d=>days[d]?.weight?.musclePct).map(d=>({label:d.slice(5),v:days[d].weight.musclePct}));
   const visceralData = sorted.filter(d=>days[d]?.weight?.visceral).map(d=>({label:d.slice(5),v:days[d].weight.visceral}));
   const waterData = sorted.filter(d=>days[d]?.weight?.waterPct).map(d=>({label:d.slice(5),v:days[d].weight.waterPct}));
-  const kcalData = sorted.filter(d=>(days[d]?.meals||[]).length>0).map(d=>({
+  const today = todayStr();
+  const kcalData = sorted.filter(d=>d<today && (days[d]?.meals||[]).length>0).map(d=>({
     label:d.slice(5),
-    v:days[d].meals.reduce((s,m)=>s+(m.kcal||0),0)
+    v:Math.round(days[d].meals.reduce((s,m)=>s+(Number(m.kcal)||0),0))
   }));
 
   const {block} = getCurrentBlock(data.plan, todayStr());
@@ -1436,7 +1644,7 @@ function TabProgreso({data}){
     ),
     React.createElement(ErrorBoundary,{name:'Kcal chart'},
       React.createElement('div',{className:'card'},
-        React.createElement(SimpleChart,{data:kcalData,width:350,height:180,color:'var(--orange)',label:'Calorías diarias',unit:'kcal'}),
+        React.createElement(SimpleChart,{data:kcalData,width:350,height:180,color:'var(--orange)',label:'Calorías diarias (días completos)',unit:'kcal'}),
         block && React.createElement('div',{className:'text-xs text-center text-muted mt-8'},
           'Target: ',block.kcal,' kcal (base) / ',block.kcalFlex||block.kcal,' kcal (flex)'
         )
@@ -1476,78 +1684,133 @@ function reviewLine(r){
   const parts = [];
   if(r.avgKcal!=null) parts.push('Prom: '+r.avgKcal+' kcal');
   if(wEnd!=null) parts.push('Peso: '+wEnd+' kg'+(delta!=null && !isNaN(delta) ? ' ('+(delta>0?'+':'')+delta.toFixed(1)+')' : ''));
-  if(r.tdee!=null) parts.push('TDEE est.: '+r.tdee);
+  if(r.trendKgWeek!=null) parts.push('Tendencia: '+(r.trendKgWeek>0?'+':'')+r.trendKgWeek+' kg/sem');
+  if(r.tdee!=null) parts.push('TDEE aprox.: '+r.tdee);
   if(r.adherence!=null) parts.push('Adherencia: '+r.adherence+'%');
   if(r.daysLogged!=null) parts.push(r.daysLogged+'/'+(r.totalDays!=null?r.totalDays:'?')+' días con comidas');
   return {date,text:parts.join(' · '),notes:r.notes||''};
 }
 
-function TabDatos({data,setData}){
+// Campo numérico que se edita libremente y se guarda al salir (evita valores intermedios raros)
+function NumField({value,onCommit,min}){
+  const [txt,setTxt] = useState(value==null?'':String(value));
+  useEffect(()=>{ setTxt(value==null?'':String(value)); },[value]);
+  function commit(){
+    const n = toNum(txt);
+    if(n==null || n<(min||0)){ setTxt(value==null?'':String(value)); return; }
+    if(n!==value) onCommit(Math.round(n));
+  }
+  function change(v){
+    const t = v.replace(/[^0-9]/g,'');
+    setTxt(t);
+    const n = toNum(t);
+    if(n!=null && n>=(min||0) && n!==value) onCommit(Math.round(n)); // se guarda al teclear (vacío no se guarda)
+  }
+  return React.createElement('input',{type:'text',inputMode:'numeric',value:txt,onChange:e=>change(e.target.value),onBlur:commit,onKeyDown:e=>{if(e.key==='Enter') e.target.blur();}});
+}
+
+function TabDatos({data,update}){
   const [editingBlock,setEditingBlock] = useState(null);
 
-  function commit(newData){ setData(newData); saveData(newData); }
+  const commit = update;
 
-  function updateProfile(patch){ commit({...data,profile:{...data.profile,...patch}}); }
-  function updateApiKey(key){ commit({...data,apiKey:key}); }
+  function updateProfile(patch){ commit(prev=>({...prev,profile:{...prev.profile,...patch}})); }
+  function updateApiKey(key){ commit(prev=>({...prev,apiKey:key.trim()})); }
   function updateBlock(idx,patch){
-    const blocks = [...data.plan.blocks];
-    blocks[idx] = {...blocks[idx],...patch};
-    commit({...data,plan:{...data.plan,blocks}});
+    commit(prev=>{
+      const blocks = [...prev.plan.blocks];
+      blocks[idx] = {...blocks[idx],...patch};
+      return {...prev,plan:{...prev.plan,blocks}};
+    });
   }
   function toggleFlex(wd){
-    const cur = Array.isArray(data.plan.flexDays)?data.plan.flexDays:[5,6];
-    const next = cur.includes(wd) ? cur.filter(x=>x!==wd) : [...cur,wd].sort();
-    commit({...data,plan:{...data.plan,flexDays:next}});
+    commit(prev=>{
+      const cur = Array.isArray(prev.plan.flexDays)?prev.plan.flexDays:[5,6];
+      const next = cur.includes(wd) ? cur.filter(x=>x!==wd) : [...cur,wd].sort();
+      return {...prev,plan:{...prev.plan,flexDays:next}};
+    });
   }
 
   function applyReview(){
     const {block,blockIdx} = getCurrentBlock(data.plan, todayStr());
     if(!block) return;
-    if((data.reviews||[]).some(r=>r.blockId===block.id)){
-      alert('Ya existe una revisión para este bloque.');
-      return;
-    }
+    const existing = (data.reviews||[]).filter(r=>r.blockId===block.id);
+    if(existing.length && !window.confirm('Ya hay '+existing.length+' revisión(es) de '+block.name+'. ¿Agregar una nueva con datos actualizados? (las anteriores se conservan)')) return;
+    if(!existing.length && !window.confirm('¿Generar la revisión de '+block.name+' con los datos hasta ayer?')) return;
     let blockStart = data.plan.startDate;
     for(let i=0;i<blockIdx;i++) blockStart = dateAdd(blockStart, data.plan.blocks[i].days);
     const today = todayStr();
 
-    const dayKeys = Object.keys(data.days).filter(d=>d>=blockStart && d<=today).sort();
-    const daysWithMeals = dayKeys.filter(d=>(data.days[d]?.meals||[]).length>0);
-    const avgKcal = daysWithMeals.length ? Math.round(daysWithMeals.reduce((s,d)=>s+data.days[d].meals.reduce((ss,m)=>ss+(m.kcal||0),0),0)/daysWithMeals.length) : null;
+    // Solo días completos: hasta ayer
+    const dayKeys = Object.keys(data.days).filter(d=>d>=blockStart && d<today).sort();
+    const kcalOf = d=>data.days[d].meals.reduce((ss,m)=>ss+(Number(m.kcal)||0),0);
+    // Días con registro completo: al menos 50% del objetivo (un día a medio registrar distorsiona el promedio)
+    const daysWithMeals = dayKeys.filter(d=>(data.days[d]?.meals||[]).length>0 && kcalOf(d) >= 0.5*getTargetKcal(getCurrentBlock(data.plan,d).block,d));
+    const avgKcal = daysWithMeals.length ? Math.round(daysWithMeals.reduce((s,d)=>s+kcalOf(d),0)/daysWithMeals.length) : null;
 
-    const wDays = dayKeys.filter(d=>data.days[d]?.weight?.kg);
-    const weightStart = wDays.length ? data.days[wDays[0]].weight.kg : null;
-    const weightEnd = wDays.length ? data.days[wDays[wDays.length-1]].weight.kg : null;
-    const span = wDays.length>=2 ? Math.round((new Date(wDays[wDays.length-1]+'T12:00:00')-new Date(wDays[0]+'T12:00:00'))/86400000) : 0;
-    // TDEE estimado = ingesta promedio - (cambio de peso × 7700 kcal/kg) / días. Solo es confiable con ≥7 días entre pesajes.
-    const tdee = (avgKcal && span>=7) ? Math.round(avgKcal - ((weightEnd-weightStart)*7700)/span) : null;
-
-    let planned=0, done=0;
-    for(let dd=blockStart; dd<=today; dd=dateAdd(dd,1)){
-      if(getScheduleType(dd)==='rest') continue;
-      planned++;
-      if(sessionDone(data,dd)) done++;
+    // Peso: tendencia por regresión lineal sobre TODOS los pesajes (suaviza agua/variaciones diarias)
+    const wDays = Object.keys(data.days).filter(d=>d>=blockStart && d<=today && data.days[d]?.weight?.kg).sort();
+    let weightStart=null, weightEnd=null, tdee=null, trendKgWeek=null;
+    if(wDays.length>=2){
+      const t0 = new Date(wDays[0]+'T12:00:00').getTime();
+      const X = wDays.map(d=>(new Date(d+'T12:00:00').getTime()-t0)/86400000);
+      const Y = wDays.map(d=>Number(data.days[d].weight.kg));
+      const n = X.length, mx = X.reduce((a,b)=>a+b,0)/n, my = Y.reduce((a,b)=>a+b,0)/n;
+      const sxx = X.reduce((a,x)=>a+(x-mx)*(x-mx),0), sxy = X.reduce((a,x,k)=>a+(x-mx)*(Y[k]-my),0);
+      const slope = sxx ? sxy/sxx : 0; // kg/día
+      const span = X[n-1];
+      weightStart = Math.round((my + slope*(0-mx))*100)/100;
+      weightEnd = Math.round((my + slope*(span-mx))*100)/100;
+      trendKgWeek = Math.round(slope*7*100)/100;
+      // TDEE ≈ ingesta promedio − pendiente × 7700 kcal/kg. Requiere ≥10 pesajes en ≥10 días.
+      if(avgKcal && n>=10 && span>=10) tdee = Math.round(avgKcal - slope*7700);
     }
+    const {planned,done} = adherenceRange(data,blockStart,dateAdd(today,-1));
 
     const review = {
-      id:uid(), blockId:block.id, blockIdx,
-      closedAt:today, weightStart, weightEnd, tdee,
+      id:uid(), blockId:block.id, blockIdx, blockName:block.name,
+      closedAt:today, weightStart, weightEnd, tdee, trendKgWeek,
       adherence: planned?pct(done,planned):null,
       avgKcal, daysLogged:daysWithMeals.length, totalDays:dayKeys.length,
       notes:'Revisión manual'
     };
-    commit({...data,reviews:[...(data.reviews||[]),review]});
-    alert('Revisión guardada para '+block.name);
+    commit(prev=>({...prev,reviews:[...(prev.reviews||[]),review]}));
+    alert('Revisión guardada para '+block.name+(tdee?'. TDEE aprox.: '+tdee+' kcal':'. TDEE: faltan datos (se necesitan ≥10 pesajes en ≥10 días)'));
+  }
+
+  function deleteReview(id){
+    if(!window.confirm('¿Borrar esta revisión?')) return;
+    commit(prev=>({...prev,reviews:(prev.reviews||[]).filter(r=>r.id!==id)}));
   }
 
   const flexDays = Array.isArray(data.plan?.flexDays)?data.plan.flexDays:[5,6];
+  let hasPrev = false, prevAt = '';
+  try{
+    prevAt = localStorage.getItem(STORAGE_KEY+'_prev_at') || '';
+    const age = daysSince(prevAt);
+    hasPrev = !!localStorage.getItem(STORAGE_KEY+'_prev') && age!==null && age<=7;
+  }catch(e){}
+  function undoRestore(){
+    let prevRaw = null;
+    try{ prevRaw = localStorage.getItem(STORAGE_KEY+'_prev'); }catch(e){}
+    if(!prevRaw) return;
+    if(!window.confirm('¿Volver a los datos que tenías antes de la restauración del '+fmtDate(localDate(prevAt))+'? Lo actual queda guardado para poder volver.')) return;
+    try{
+      const prevData = normalizeData(JSON.parse(prevRaw));
+      const current = JSON.stringify(data);
+      commit(()=>prevData);
+      try{ localStorage.setItem(STORAGE_KEY+'_prev', current); localStorage.setItem(STORAGE_KEY+'_prev_at', new Date().toISOString()); }catch(e){}
+      alert('Listo: se restauraron tus datos anteriores.');
+    }catch(e){ alert('No se pudo deshacer: '+e.message); }
+  }
   const perfCount = perfEntries(data).length;
   const WD = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
 
   return React.createElement(Fragment,null,
     React.createElement('div',{className:'card'},
       React.createElement('div',{className:'card-title'},'🔑 API Key'),
-      React.createElement('input',{type:'password',value:data.apiKey||'',onChange:e=>updateApiKey(e.target.value),placeholder:'sk-ant-...'})
+      React.createElement('input',{type:'password',autoComplete:'off',autoCorrect:'off',autoCapitalize:'off',spellCheck:false,name:'anthropic-api-key',value:data.apiKey||'',onChange:e=>updateApiKey(e.target.value),placeholder:'sk-ant-...'}),
+      React.createElement('div',{className:'text-xs text-muted',style:{marginTop:6}},'Se guarda solo en este iPhone. No se incluye en los backups.')
     ),
 
     React.createElement('div',{className:'card'},
@@ -1588,12 +1851,12 @@ function TabDatos({data,setData}){
             React.createElement('span',{className:'text-xs text-muted'},b.kcal,'/',b.kcalFlex||b.kcal,' kcal · ',b.days,'d')
           ),
           editingBlock===i && React.createElement('div',{style:{padding:'8px 0',display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}},
-            React.createElement('div',null,React.createElement('div',{className:'text-xs text-muted'},'Kcal base'),React.createElement('input',{type:'number',value:b.kcal,onChange:e=>updateBlock(i,{kcal:Number(e.target.value)})})),
-            React.createElement('div',null,React.createElement('div',{className:'text-xs text-muted'},'Kcal flex'),React.createElement('input',{type:'number',value:b.kcalFlex||b.kcal,onChange:e=>updateBlock(i,{kcalFlex:Number(e.target.value)})})),
-            React.createElement('div',null,React.createElement('div',{className:'text-xs text-muted'},'Proteína'),React.createElement('input',{type:'number',value:b.protein,onChange:e=>updateBlock(i,{protein:Number(e.target.value)})})),
-            React.createElement('div',null,React.createElement('div',{className:'text-xs text-muted'},'Carbos'),React.createElement('input',{type:'number',value:b.carbs,onChange:e=>updateBlock(i,{carbs:Number(e.target.value)})})),
-            React.createElement('div',null,React.createElement('div',{className:'text-xs text-muted'},'Grasa'),React.createElement('input',{type:'number',value:b.fat,onChange:e=>updateBlock(i,{fat:Number(e.target.value)})})),
-            React.createElement('div',null,React.createElement('div',{className:'text-xs text-muted'},'Días'),React.createElement('input',{type:'number',value:b.days,onChange:e=>updateBlock(i,{days:Number(e.target.value)})}))
+            React.createElement('div',null,React.createElement('div',{className:'text-xs text-muted'},'Kcal base'),React.createElement(NumField,{value:b.kcal,min:0,onCommit:v=>updateBlock(i,{kcal:v})})),
+            React.createElement('div',null,React.createElement('div',{className:'text-xs text-muted'},'Kcal flex'),React.createElement(NumField,{value:b.kcalFlex,min:0,onCommit:v=>updateBlock(i,{kcalFlex:v})})),
+            React.createElement('div',null,React.createElement('div',{className:'text-xs text-muted'},'Proteína'),React.createElement(NumField,{value:b.protein,min:0,onCommit:v=>updateBlock(i,{protein:v})})),
+            React.createElement('div',null,React.createElement('div',{className:'text-xs text-muted'},'Carbos'),React.createElement(NumField,{value:b.carbs,min:0,onCommit:v=>updateBlock(i,{carbs:v})})),
+            React.createElement('div',null,React.createElement('div',{className:'text-xs text-muted'},'Grasa'),React.createElement(NumField,{value:b.fat,min:0,onCommit:v=>updateBlock(i,{fat:v})})),
+            React.createElement('div',null,React.createElement('div',{className:'text-xs text-muted'},'Días'),React.createElement(NumField,{value:b.days,min:1,onCommit:v=>updateBlock(i,{days:v})}))
           )
         )
       )
@@ -1606,10 +1869,14 @@ function TabDatos({data,setData}){
         React.createElement('div',{className:'text-xs text-muted mb-8'},'Revisiones anteriores:'),
         (data.reviews||[]).map((r,i)=>{
           const L = reviewLine(r);
-          return React.createElement('div',{key:r.id||('r'+i),className:'text-xs',style:{padding:'4px 0',borderBottom:'1px solid var(--border)'}},
-            React.createElement('span',{className:'fw-bold'},r.blockId||'Bloque'),
-            ' — ',L.date,' · ',L.text,
-            L.notes && React.createElement('div',{className:'text-muted'},L.notes)
+          const bName = r.blockName || ((data.plan?.blocks||[]).find(b=>b.id===r.blockId)||{}).name || r.blockId || 'Bloque';
+          return React.createElement('div',{key:r.id||('r'+i),className:'text-xs',style:{padding:'6px 0',borderBottom:'1px solid var(--border)',display:'flex',gap:6,alignItems:'flex-start'}},
+            React.createElement('div',{className:'flex-1'},
+              React.createElement('span',{className:'fw-bold'},bName),
+              ' — ',L.date,' · ',L.text,
+              L.notes && React.createElement('div',{className:'text-muted'},L.notes)
+            ),
+            React.createElement('button',{className:'icon-btn text-red','aria-label':'Borrar revisión',onClick:()=>deleteReview(r.id)},'✕')
           );
         })
       )
@@ -1621,7 +1888,8 @@ function TabDatos({data,setData}){
         Object.values(data.days||{}).reduce((s,d)=>s+(d.meals||[]).length,0),' · Frecuentes: ',(data.frequentFoods||[]).length
       ),
       React.createElement('div',{className:'text-xs text-muted'},'Revisiones: ',(data.reviews||[]).length,' · Rendimiento: ',perfCount),
-      data.lastExportAt && React.createElement('div',{className:'text-xs text-muted',style:{marginTop:4}},'Último backup: ',String(data.lastExportAt).slice(0,10)),
+      data.lastExportAt && React.createElement('div',{className:'text-xs text-muted',style:{marginTop:4}},'Último backup: ',fmtDate(localDate(data.lastExportAt))),
+      hasPrev && React.createElement('button',{className:'btn btn-secondary w-full mt-12',onClick:undoRestore},'↩️ Deshacer la última restauración (',fmtDate(localDate(prevAt)),')'),
       React.createElement('div',{className:'text-xs text-muted',style:{marginTop:8}},'Usa 💾 (arriba) para respaldar y 📂 para restaurar. Al restaurar se guarda automáticamente una copia de lo que tenías.')
     )
   );
@@ -1634,12 +1902,60 @@ function App(){
   const [date,setDate] = useState(todayStr());
   const [toast,setToast] = useState('');
   const fileRef = useRef();
+  const dataRef = useRef(data);
+  dataRef.current = data;
+  const seenToday = useRef(todayStr());
 
   // Días flex configurables (global leído por isFlexDay)
   FLEX_DAYS = Array.isArray(data.plan&&data.plan.flexDays) ? data.plan.flexDays : [5,6];
 
-  // Guardar la versión migrada una sola vez al abrir
-  useEffect(()=>{ saveData(data); },[]);
+  // Única vía de escritura: parte siempre del estado más reciente y guarda de inmediato
+  const update = useCallback(fn=>{
+    setData(prev=>{
+      const next = typeof fn==='function' ? fn(prev) : fn;
+      if(!next || next===prev) return prev;
+      saveData(next);
+      return next;
+    });
+  },[]);
+
+  useEffect(()=>{
+    // Guardar la versión migrada al abrir
+    if(!SKIP_INITIAL_SAVE) saveData(dataRef.current);
+    if(LOAD_WARNING) setTimeout(()=>alert('⚠️ '+LOAD_WARNING),300);
+    // Pedir a Safari almacenamiento persistente (reduce el riesgo de borrado automático)
+    try{ if(navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(()=>{}); }catch(e){}
+
+    // Si otra pestaña/ventana guardó datos, o vuelves a la app, recarga lo guardado (evita que una pestaña vieja sobrescriba)
+    function syncFromStorage(){
+      if(!lastSaveOk) return; // si el último guardado falló, lo de pantalla es lo más nuevo: no lo pises
+      const fresh = safeGet(STORAGE_KEY);
+      if(!fresh) return;
+      try{
+        if(JSON.stringify(fresh)!==JSON.stringify(dataRef.current)) setData(normalizeData(fresh));
+      }catch(e){}
+    }
+    function onVisible(){
+      if(document.visibilityState!=='visible') return;
+      syncFromStorage();
+      // Si la app quedó abierta de un día para otro, pasa al nuevo "Hoy"
+      const t = todayStr();
+      if(t!==seenToday.current){
+        const old = seenToday.current;
+        seenToday.current = t;
+        setDate(d=> d===old ? t : d);
+      }
+    }
+    function onStorage(e){ if(e.key===STORAGE_KEY) syncFromStorage(); }
+    document.addEventListener('visibilitychange',onVisible);
+    window.addEventListener('focus',onVisible);
+    window.addEventListener('storage',onStorage);
+    return ()=>{
+      document.removeEventListener('visibilitychange',onVisible);
+      window.removeEventListener('focus',onVisible);
+      window.removeEventListener('storage',onStorage);
+    };
+  },[]);
 
   function showToast(msg){
     setToast(msg);
@@ -1647,15 +1963,35 @@ function App(){
   }
 
   function doBackup(){
-    const stamped = {...data,lastExportAt:new Date().toISOString()};
-    const json = JSON.stringify(stamped,null,2);
-    const blob = new Blob([json],{type:'application/json'});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href=url; a.download='hyroxtrack-'+todayStr()+'.json'; a.click();
-    setTimeout(()=>URL.revokeObjectURL(url),1000);
-    setData(stamped); saveData(stamped);
-    showToast('Backup descargado');
+    const stamp = new Date().toISOString();
+    const exp = {...dataRef.current,lastExportAt:stamp};
+    delete exp.apiKey; // la API key no viaja en el backup (al restaurar se conserva la del dispositivo)
+    const json = JSON.stringify(exp,null,2);
+    const name = 'hyroxtrack-'+todayStr()+'.json';
+    const done = ()=>{ update(prev=>({...prev,lastExportAt:stamp})); showToast('Backup listo ✓'); };
+    function download(){
+      const blob = new Blob([json],{type:'application/json'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href=url; a.download=name;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(()=>URL.revokeObjectURL(url),120000);
+      done();
+    }
+    try{
+      let file = null;
+      try{ file = new File([json],name,{type:'application/json'}); }catch(e){}
+      if(file && navigator.canShare && navigator.share && navigator.canShare({files:[file]})){
+        // iPhone: hoja de compartir → "Guardar en Archivos"
+        navigator.share({files:[file],title:'Backup HyroxTrack'})
+          .then(done)
+          .catch(err=>{ if(err && err.name==='AbortError') showToast('Backup cancelado'); else alert('No se pudo compartir el backup ('+(err&&err.message||'error')+'). Intenta de nuevo.'); });
+        return;
+      }
+      download();
+    }catch(err){
+      alert('No se pudo crear el backup: '+err.message);
+    }
   }
 
   function doRestore(){
@@ -1664,6 +2000,7 @@ function App(){
 
   function handleRestore(e){
     const file = e.target.files?.[0];
+    if(fileRef.current) fileRef.current.value='';
     if(!file) return;
     const reader = new FileReader();
     reader.onload = ()=>{
@@ -1671,20 +2008,21 @@ function App(){
         const imported = JSON.parse(reader.result);
         if(!imported||typeof imported!=='object'||Array.isArray(imported)) throw new Error('archivo inválido');
         if(!imported.days && !imported.plan) throw new Error('no parece un backup de HyroxTrack');
+        const nDays = Object.keys(imported.days||{}).length;
+        if(!window.confirm('¿Restaurar este backup ('+nDays+' días)? Reemplaza lo que hay en la app. Se guarda una copia de lo actual por seguridad.')) return;
         // Copia de seguridad de lo actual antes de sobrescribir
-        try{ localStorage.setItem(STORAGE_KEY+'_prev', JSON.stringify(data)); }catch(_){}
+        try{ localStorage.setItem(STORAGE_KEY+'_prev', JSON.stringify(dataRef.current)); localStorage.setItem(STORAGE_KEY+'_prev_at', new Date().toISOString()); }catch(_){}
         // Conservar la API key actual si el backup no trae una
-        if(!imported.apiKey) imported.apiKey = data.apiKey||'';
+        if(dataRef.current.apiKey) imported.apiKey = dataRef.current.apiKey;
         const clean = normalizeData(imported);
-        setData(clean);
-        saveData(clean);
+        update(()=>clean);
         showToast('Datos restaurados ✓');
       }catch(err){
         alert('Error al restaurar: '+err.message);
       }
     };
+    reader.onerror = ()=>alert('No se pudo leer el archivo');
     reader.readAsText(file);
-    if(fileRef.current) fileRef.current.value='';
   }
 
   const {block,blockIdx,dayInBlock} = getCurrentBlock(data.plan, date);
@@ -1694,10 +2032,11 @@ function App(){
     React.createElement('input',{ref:fileRef,type:'file',accept:'.json,application/json',style:{display:'none'},onChange:handleRestore}),
     React.createElement(TopBar,{block,blockIdx,dayInBlock,onBackup:doBackup,onRestore:doRestore}),
     React.createElement('div',{className:'content'},
-      tab===0 && React.createElement(ErrorBoundary,{name:'TabDia'},React.createElement(TabDia,{data,setData,date,setDate})),
-      tab===1 && React.createElement(ErrorBoundary,{name:'TabRendimiento'},React.createElement(TabRendimiento,{data,setData})),
+      React.createElement(BackupBanner,{lastExportAt:data.lastExportAt,onBackup:doBackup}),
+      tab===0 && React.createElement(ErrorBoundary,{name:'TabDia'},React.createElement(TabDia,{data,update,date,setDate,notify:showToast})),
+      tab===1 && React.createElement(ErrorBoundary,{name:'TabRendimiento'},React.createElement(TabRendimiento,{data,update})),
       tab===2 && React.createElement(ErrorBoundary,{name:'TabProgreso'},React.createElement(TabProgreso,{data})),
-      tab===3 && React.createElement(ErrorBoundary,{name:'TabDatos'},React.createElement(TabDatos,{data,setData}))
+      tab===3 && React.createElement(ErrorBoundary,{name:'TabDatos'},React.createElement(TabDatos,{data,update}))
     ),
     React.createElement(Tabbar,{active:tab,onChange:setTab})
   );
@@ -1705,18 +2044,41 @@ function App(){
 
 ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App));
 </script>
-<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <script>
-try {
-  var src = document.getElementById('app-source').textContent;
-  var out = Babel.transform(src, { presets: [['react', { runtime: 'classic' }]] });
-  eval(out.code);
-} catch(e) {
-  document.getElementById('root').innerHTML = '<div style="color:red;padding:20px;font-family:monospace"><h2>Error de carga</h2><pre>' + e.message + '\n\n' + (e.stack||'') + '</pre></div>';
-  console.error(e);
-}
+(function(){
+  var LIBS = [
+    ['https://unpkg.com/react@18.3.1/umd/react.production.min.js','https://cdn.jsdelivr.net/npm/react@18.3.1/umd/react.production.min.js'],
+    ['https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js','https://cdn.jsdelivr.net/npm/react-dom@18.3.1/umd/react-dom.production.min.js'],
+    ['https://unpkg.com/@babel/standalone@7.29.9/babel.min.js','https://cdn.jsdelivr.net/npm/@babel/standalone@7.29.9/babel.min.js']
+  ];
+  function showError(title, detail){
+    document.getElementById('root').innerHTML =
+      '<div style="padding:24px;font-family:-apple-system,sans-serif;color:#eee">' +
+      '<h2 style="margin:0 0 8px">' + title + '</h2>' +
+      '<p style="opacity:.8;font-size:14px">Tus datos están a salvo en este dispositivo.</p>' +
+      '<button onclick="location.reload()" style="margin:12px 0;padding:10px 18px;border-radius:8px;border:0;background:#3b82f6;color:#fff;font-size:15px">Recargar</button>' +
+      '<pre style="white-space:pre-wrap;font-size:11px;opacity:.6">' + String(detail||'').replace(/</g,'&lt;') + '</pre></div>';
+  }
+  function loadOne(urls, k, done){
+    if(k >= urls.length){ showError('No se pudieron cargar las librerías', 'Revisa tu conexión a internet y recarga.'); return; }
+    var s = document.createElement('script');
+    s.src = urls[k];
+    s.onload = done;
+    s.onerror = function(){ loadOne(urls, k+1, done); };
+    document.head.appendChild(s);
+  }
+  function start(){
+    try {
+      var src = document.getElementById('app-source').textContent;
+      var out = Babel.transform(src, { presets: [['react', { runtime: 'classic' }]] });
+      eval(out.code);
+    } catch(e) {
+      showError('Error de carga', e.message + '\n\n' + (e.stack||''));
+      console.error(e);
+    }
+  }
+  (function next(i){ if(i >= LIBS.length) return start(); loadOne(LIBS[i], 0, function(){ next(i+1); }); })(0);
+})();
 </script>
 </body>
 </html>
