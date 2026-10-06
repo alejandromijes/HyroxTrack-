@@ -203,8 +203,8 @@ const ROUTINE_FULL = {
 };
 
 // ─── Utility ───────────────────────────────────────────────
-function todayStr(){ return new Date().toISOString().slice(0,10); }
-function dateAdd(str,n){ const d=new Date(str+'T12:00:00'); d.setDate(d.getDate()+n); return d.toISOString().slice(0,10); }
+function todayStr(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function dateAdd(str,n){ const d=new Date(str+'T12:00:00'); d.setDate(d.getDate()+n); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
 function fmtDate(str){
   const d=new Date(str+'T12:00:00');
   return `${DAY_NAMES[d.getDay()]} ${d.getDate()} ${MONTH_NAMES[d.getMonth()]}`;
@@ -343,24 +343,41 @@ function getTargetKcal(block, dateStr){
 }
 
 // ─── API helpers ───────────────────────────────────────────
+const MODEL_CHAIN = ['claude-sonnet-5-5','claude-haiku-4-5-20251001','claude-opus-5-5','claude-sonnet-4-20250514'];
+let workingModel = null;
+
 async function callClaude(apiKey, messages, maxTokens=1024){
-  const res = await fetch('https://api.anthropic.com/v1/messages',{
-    method:'POST',
-    headers:{
-      'Content-Type':'application/json',
-      'x-api-key':apiKey,
-      'anthropic-version':'2023-06-01',
-      'anthropic-dangerous-direct-browser-access':'true'
-    },
-    body:JSON.stringify({
-      model:'claude-sonnet-4-20250514',
-      max_tokens:maxTokens,
-      messages
-    })
-  });
-  if(!res.ok) throw new Error(`API ${res.status}`);
-  const data = await res.json();
-  return data.content?.[0]?.text || '';
+  if(!apiKey) throw new Error('Falta la API key (pestaña Datos)');
+  const models = workingModel ? [workingModel, ...MODEL_CHAIN.filter(m=>m!==workingModel)] : MODEL_CHAIN;
+  let lastErr = '';
+  for(const model of models){
+    let res;
+    try{
+      res = await fetch('https://api.anthropic.com/v1/messages',{
+        method:'POST',
+        headers:{
+          'Content-Type':'application/json',
+          'x-api-key':apiKey,
+          'anthropic-version':'2023-06-01',
+          'anthropic-dangerous-direct-browser-access':'true'
+        },
+        body:JSON.stringify({model,max_tokens:maxTokens,messages})
+      });
+    }catch(netErr){
+      throw new Error('Sin conexión con la API: '+netErr.message);
+    }
+    if(res.ok){
+      workingModel = model;
+      const data = await res.json();
+      return data.content?.[0]?.text || '';
+    }
+    let detail = '';
+    try{ const j = await res.json(); detail = j?.error?.message || ''; }catch(e){}
+    lastErr = `API ${res.status}${detail?': '+detail:''} (modelo ${model})`;
+    // 404 = modelo no disponible → probar el siguiente. Otros errores (401, 429, 400...) no se arreglan cambiando de modelo.
+    if(res.status !== 404) throw new Error(lastErr);
+  }
+  throw new Error(lastErr || 'API sin respuesta');
 }
 
 async function fileToBase64(file){
@@ -1480,5 +1497,3 @@ try {
 </script>
 </body>
 </html>
-
-
